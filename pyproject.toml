@@ -1,0 +1,69 @@
+[project]
+name = "xmind2testcase"
+version = "1.5.0"
+description = "XMind2TestCase基于Python实现，提供了一个高效测试用例设计的解决方案！"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+keywords = [
+    "xmind2testCase",
+    "testcase",
+    "test",
+    "testing",
+    "xmind",
+    "思维导图",
+    "XMind思维导图"
+]
+authors = [
+    { name = "Devin", email = "1324556701@qq.com" }
+]
+maintainers = [
+    { name = "Devin", email = "1324556701@qq.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "xmind>=1.2.0",
+    "flask>=3.0.0",
+    "arrow>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "twine>=5.0.0",
+    "build>=0.10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/zhuifengshen/xmind2testcase"
+Repository = "https://github.com/zhuifengshen/xmind2testcase"
+Issues = "https://github.com/zhuifengshen/xmind2testcase/issues"
+
+[project.scripts]
+xmind2testcase = "xmind2testcase.cli:cli_main"
+
+[dependency-groups]
+dev = [
+    "twine>=5.0.0",
+    "build>=0.10.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+exclude = ["tests", "test.*", "docs"]
+
+[tool.setuptools.package-data]
+"*" = ["README.md"]
+"webtool" = ["static/*", "static/css/*", "static/guide/*", "templates/*", "schema.sql"]
