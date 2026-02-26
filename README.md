@@ -102,6 +102,60 @@ pip install -U xmind2testcase
 
 ---
 
+### 🛠️ 本地开发
+
+#### 快速启动
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/koco-co/xmind2testcase_v2.git
+cd xmind2testcase_v2
+
+# 2. 安装依赖
+uv sync
+
+# 3. 激活虚拟环境
+source .venv/bin/activate
+
+# 4. 启动 Web 工具（任选一种方式）
+python webtool/application.py              # 方式 1：直接运行
+python -m xmind2testcase.cli webtool       # 方式 2：命令行工具
+
+# 5. 访问 http://127.0.0.1:5002
+```
+
+#### 命令行使用
+
+```bash
+# 激活虚拟环境后
+source .venv/bin/activate
+
+# 转换为所有格式（CSV、XML、JSON）
+python -m xmind2testcase.cli path/to/testcase.xmind
+
+# 转换为特定格式
+python -m xmind2testcase.cli path/to/testcase.xmind -csv   # 禅道 CSV
+python -m xmind2testcase.cli path/to/testcase.xmind -xml   # TestLink XML
+python -m xmind2testcase.cli path/to/testcase.xmind -json  # JSON
+
+# 启动 Web 工具（自定义端口）
+python -m xmind2testcase.cli webtool 8000
+```
+
+#### 自定义端口启动
+
+```bash
+# 方式 1：修改 application.py 中的端口
+# 方式 2：使用命令行工具
+source .venv/bin/activate
+python -m xmind2testcase.cli webtool 8000
+
+# 方式 3：使用 launch 函数
+python -c "from webtool.application import launch; launch(port=8000)"
+```
+
+---
+
 ## 💡 使用指南
 
 ### 1️⃣ 命令行调用
