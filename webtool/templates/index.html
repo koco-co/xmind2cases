@@ -149,6 +149,12 @@
         const files = dt.files;
 
         if (files.length > 0) {
+            const file = files[0];
+            // 验证文件扩展名
+            if (!file.name.toLowerCase().endsWith('.xmind')) {
+                alert('请上传 .xmind 格式的文件');
+                return;
+            }
             fileInput.files = files;
             // 触发 change 事件
             const event = new Event("change");
