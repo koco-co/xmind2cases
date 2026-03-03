@@ -339,6 +339,30 @@ verify_xmind_conversion() {
     print_success "XMind 转换功能验证完成"
 }
 
+# 运行 linter
+run_linter() {
+    print_step "运行代码检查..."
+
+    if uv run ruff check xmind2testcase/ webtool/; then
+        print_success "代码检查通过"
+    else
+        print_error "代码检查发现问题"
+        print_info "运行 'uv run ruff check --fix' 自动修复"
+        exit 1
+    fi
+}
+
+# 运行类型检查
+run_type_check() {
+    print_step "运行类型检查..."
+
+    if uv run pyright xmind2testcase/; then
+        print_success "类型检查通过"
+    else
+        print_warning "类型检查发现问题（非阻塞）"
+    fi
+}
+
 # 参数解析
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
