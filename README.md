@@ -28,7 +28,7 @@
 
 ### 🎯 双格式解析支持
 
-<strong>XMind2Cases</strong> 是目前唯一同时支持 XMind 8 和 XMind 2026 两种格式的测试用例转换工具：
+<strong>XMind2Cases</strong> 同时支持 XMind 8 和 XMind 2026 两种格式的测试用例转换：
 
 - ✅ **XMind 8 及更早版本** - 解析 XML 格式 (.xmind)
 - ✅ **XMind 2026 最新版本** - 解析 JSON 格式 (.xmind)
