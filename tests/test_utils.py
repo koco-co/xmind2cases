@@ -200,3 +200,27 @@ def test_normalize_preserves_original_data():
 
     # 验证原始数据没有 markers
     assert 'markers' not in input_data[0]['topic']['topics'][0]
+
+def test_get_xmind_testsuites_file_not_found():
+    """测试文件不存在时抛出异常"""
+    from xmind2testcase.utils import get_xmind_testsuites
+
+    with pytest.raises(FileNotFoundError, match="XMind file not found"):
+        get_xmind_testsuites('nonexistent.xmind')
+
+def test_get_xmind_testsuites_invalid_format():
+    """测试无效文件格式时抛出异常"""
+    from xmind2testcase.utils import get_xmind_testsuites
+    import tempfile
+    import os
+
+    # 创建一个非 .xmind 文件
+    with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as f:
+        temp_file = f.name
+        f.write(b"invalid content")
+
+    try:
+        with pytest.raises(ValueError, match="Invalid file format"):
+            get_xmind_testsuites(temp_file)
+    finally:
+        os.unlink(temp_file)

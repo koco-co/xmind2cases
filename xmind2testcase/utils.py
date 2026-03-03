@@ -6,8 +6,6 @@ import logging
 import os
 from typing import Any, Dict, List
 
-import xmind
-
 from xmind2testcase.metadata import TestSuite
 from xmind2testcase.parser import xmind_to_testsuites
 
@@ -108,19 +106,60 @@ def get_xmind_testsuites(xmind_file: str) -> List[TestSuite]:
 
     Returns:
         List of TestSuite objects parsed from the XMind file.
-    """
-    xmind_file = get_absolute_path(xmind_file)
-    workbook = xmind.load(xmind_file)
-    xmind_content_dict = workbook.getData()
-    logging.debug("loading XMind file(%s) dict data: %s",
-                  xmind_file, xmind_content_dict)
 
-    if xmind_content_dict:
-        testsuites = xmind_to_testsuites(xmind_content_dict)
-        return testsuites
-    else:
-        logging.error('Invalid XMind file(%s): it is empty!', xmind_file)
-        return []
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file format is invalid or parsing fails.
+    """
+    from xmindparser import xmind_to_dict
+
+    xmind_file = get_absolute_path(xmind_file)
+
+    # 文件存在性检查
+    if not os.path.exists(xmind_file):
+        raise FileNotFoundError(
+            f"XMind file not found: {xmind_file}"
+        )
+
+    # 文件扩展名检查
+    if not xmind_file.lower().endswith('.xmind'):
+        raise ValueError(
+            f"Invalid file format. Expected .xmind file, got: {xmind_file}"
+        )
+
+    logging.info('Parsing XMind file: %s', xmind_file)
+
+    # 解析文件
+    try:
+        xmind_content_dict = xmind_to_dict(xmind_file)
+    except Exception as e:
+        raise ValueError(
+            f"Failed to parse XMind file: {xmind_file}. "
+            f"Error: {str(e)}"
+        ) from e
+
+    # 数据验证
+    if not xmind_content_dict:
+        raise ValueError(
+            f"Invalid XMind file: {xmind_file}. "
+            "File is empty or contains no valid data."
+        )
+
+    # 标准化数据格式
+    try:
+        xmind_content_dict = normalize_xmind_data(xmind_content_dict)
+    except Exception as e:
+        raise ValueError(
+            f"Failed to normalize XMind data: {str(e)}"
+        ) from e
+
+    logging.debug("Normalized XMind data: %s", xmind_content_dict)
+
+    # 解析为 TestSuite 对象
+    testsuites = xmind_to_testsuites(xmind_content_dict)
+
+    logging.info('Successfully parsed %d testsuite(s)', len(testsuites))
+    return testsuites
 
 
 def _calculate_suite_statistics(testcase_list: List[Any]) -> Dict[str, int]:
