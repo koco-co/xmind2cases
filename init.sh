@@ -486,6 +486,100 @@ create_git_tag() {
     print_success "Git 标签已创建: $tag_name"
 }
 
+# 检查发布令牌
+check_publish_token() {
+    if [[ -z "$UV_PUBLISH_TOKEN" ]]; then
+        print_error "未设置 UV_PUBLISH_TOKEN 环境变量"
+        print_info "设置方法: export UV_PUBLISH_TOKEN='pypi-...'"
+        exit 1
+    fi
+    print_success "PyPI 令牌已配置"
+}
+
+# 构建项目
+uv_build() {
+    print_step "构建项目..."
+
+    # 清理旧的构建产物
+    rm -rf dist/ *.egg-info/
+
+    # 构建项目
+    if uv build; then
+        print_success "项目构建完成"
+
+        # 显示构建产物
+        echo ""
+        print_info "构建产物:"
+        ls -lh dist/
+        echo ""
+    else
+        print_error "项目构建失败"
+        exit 1
+    fi
+}
+
+# 发布到 PyPI
+uv_publish() {
+    print_step "发布到 PyPI..."
+
+    check_publish_token
+
+    if uv publish; then
+        print_success "发布到 PyPI 成功"
+    else
+        print_error "发布到 PyPI 失败"
+        exit 1
+    fi
+}
+
+# 创建 GitHub Release
+create_gh_release() {
+    print_step "创建 GitHub Release..."
+
+    # 检查 gh CLI
+    if ! command -v gh &> /dev/null; then
+        print_error "未安装 GitHub CLI (gh)"
+        print_info "安装方法: https://cli.github.com/"
+        exit 1
+    fi
+
+    # 检查认证状态
+    if ! gh auth status &> /dev/null; then
+        print_error "GitHub CLI 未认证"
+        print_info "运行: gh auth login"
+        exit 1
+    fi
+
+    local tag_name="v$VERSION"
+
+    # 推送代码和标签
+    print_info "推送到 GitHub..."
+    git push
+    git push origin "$tag_name"
+
+    # 创建 release
+    print_info "创建 GitHub Release..."
+    if gh release create "$tag_name" --notes "Release $tag_name
+
+请查看 [CHANGELOG.md](https://github.com/koco-co/xmind2cases/blob/main/CHANGELOG.md) 了解详细更改。"; then
+        print_success "GitHub Release 创建成功"
+    else
+        print_error "GitHub Release 创建失败"
+        exit 1
+    fi
+}
+
+# 打印发布摘要
+print_release_summary() {
+    echo ""
+    print_success "发布完成！"
+    echo ""
+    print_info "版本: $VERSION"
+    print_info "PyPI: https://pypi.org/project/xmind2cases/"
+    print_info "GitHub: https://github.com/koco-co/xmind2cases/releases/tag/v$VERSION"
+    echo ""
+}
+
 # 参数解析
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
