@@ -4,6 +4,30 @@
 
 ## [1.6.0] - 2026-03-03
 
+### Added
+- ✨ 一键初始化脚本 init.sh，支持环境配置和发布流程
+- 🐍 Python 最低版本提升至 3.12.12
+- 🔧 集成现代化开发工具：ruff, pyright, pre-commit, rich
+- 🆕 支持 XMind 2026 文件格式（JSON 格式）
+- 🔄 同时兼容 XMind 8 及以前版本（XML 格式）
+- 🧪 添加完整的测试套件（单元、集成、E2E）
+- 📝 添加项目开发文档
+
+### Changed
+- 🔄 项目重命名为 xmind2cases（原 xmind2testcase）
+- 📦 使用 uv 替代 setuptools 进行构建和发布
+- ♻️ 底层解析库从 xmind 切换到 xmindparser
+- ⚠️ 错误处理更严格：文件不存在或格式错误时抛出异常
+- 🔧 改进数据验证和错误提示
+- 更新所有文档和命令名称
+
+### Removed
+- 🗑️ 删除过时的配置文件：pytest.ini, requirements.txt
+- 移除对旧版本 Python 的支持（< 3.12.12）
+
+### Fixed
+- 🐛 修复 xmind2026 文件解析乱码问题
+
 ### 新增
 - ✨ 支持 XMind 2026 文件格式（JSON 格式）
 - ✨ 同时兼容 XMind 8 及以前版本（XML 格式）

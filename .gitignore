@@ -1,26 +1,44 @@
+# OS files
 .DS_Store
-.idea
-.vscode
+Thumbs.db
 
-# build
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
 *.egg
-*.egg-info
-dist
-build
-__pycache__
-.pypirc
-*.py[cod]
+*.egg-info/
+dist/
+build/
 
-# web
-*data.db3
+# Test artifacts
+htmlcov/
+.pytest_cache/
+.coverage
+
+# Python
+__pycache__/
+*.py[cod]
+.pypirc
+
+# Virtual environment
+.venv/
+venv/
+
+# Logs
+logs/
+*.log
 *running.log
-uploads
-# docs directory is ignored, except for design documents
+
+# Web
+*data.db3
+uploads/
+
+# Docs (except plans)
 docs/*.xmind
 docs/*.csv
 docs/*.json
-# 但允许 docs/plans 目录
 !docs/plans/
-
-
-logs
