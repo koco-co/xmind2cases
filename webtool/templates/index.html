@@ -86,7 +86,68 @@
                 </form>
             </div>
 
-            <!-- 历史记录将在下一个任务添加 -->
+            <!-- 历史记录表格 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900">最近转换记录</h2>
+                </div>
+
+                {% if records %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">文件名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">时间</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200">
+                            {% for record in records %}
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700" title="{{ record[1] }}">
+                                    {{ record[0] }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                    {{ record[2] }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div class="flex flex-wrap gap-2">
+                                        <a href="{{ url_for('uploaded_file',filename=record[1]) }}" class="text-indigo-600 hover:text-indigo-700">XMind</a>
+                                        <span class="text-slate-300">|</span>
+                                        <a href="{{ url_for('download_zentao_file',filename=record[1]) }}" class="text-indigo-600 hover:text-indigo-700">CSV</a>
+                                        <span class="text-slate-300">|</span>
+                                        <a href="{{ url_for('download_testlink_file',filename=record[1]) }}" class="text-indigo-600 hover:text-indigo-700">XML</a>
+                                        <span class="text-slate-300">|</span>
+                                        <a href="{{ url_for('preview_file',filename=record[1]) }}" class="text-indigo-600 hover:text-indigo-700">预览</a>
+                                        <span class="text-slate-300">|</span>
+                                        <a href="{{ url_for('delete_file',filename=record[1], record_id=record[4]) }}" class="text-red-600 hover:text-red-700">删除</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="px-6 py-12 text-center">
+                    <svg class="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p class="text-slate-500 mb-2">欢迎使用 XMind2TestCase!</p>
+                    <p class="text-sm text-slate-400">上传 XMind 文件,快速转换为测试用例,导入到 TestLink 或禅道。</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 页脚 -->
+            <footer class="mt-12 text-center text-sm text-slate-400">
+                <a href="{{ url_for('static', filename='guide/index.html') }}" target="_blank" class="hover:text-slate-600">使用指南</a>
+                <span class="mx-2">|</span>
+                <a href="https://github.com/zhuifengshen/xmind2testcase/issues/new" target="_blank" class="hover:text-slate-600">反馈问题</a>
+                <span class="mx-2">|</span>
+                Powered by <a href="https://github.com/zhuifengshen/xmind2testcase" target="_blank" class="hover:text-slate-600">XMind2TestCase</a>
+            </footer>
         </div>
     </main>
 
