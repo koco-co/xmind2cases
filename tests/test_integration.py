@@ -53,3 +53,24 @@ def test_xmind2026_to_testcase_list(xmind2026_file):
     assert 'steps' in case
     assert 'product' in case
     assert 'suite' in case
+
+def test_both_formats_same_output(xmind8_file, xmind2026_file):
+    """测试两种格式文件的输出一致"""
+    # 获取两种格式的测试用例
+    xmind8_cases = get_xmind_testcase_list(xmind8_file)
+    xmind2026_cases = get_xmind_testcase_list(xmind2026_file)
+
+    # 验证测试用例数量相同
+    assert len(xmind8_cases) == len(xmind2026_cases)
+
+    # 验证每个测试用例的关键字段相同
+    for case8, case2026 in zip(xmind8_cases, xmind2026_cases):
+        assert case8['name'] == case2026['name']
+        assert case8['product'] == case2026['product']
+        assert case8['suite'] == case2026['suite']
+        assert len(case8['steps']) == len(case2026['steps'])
+
+        # 验证测试步骤
+        for step8, step2026 in zip(case8['steps'], case2026['steps']):
+            assert step8['actions'] == step2026['actions']
+            assert step8['expectedresults'] == step2026['expectedresults']
