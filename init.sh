@@ -59,28 +59,6 @@ detect_os() {
     esac
 }
 
-# 检查 Python 版本
-check_python_version() {
-    print_step "检查 Python 版本..."
-
-    if ! command -v python3 &> /dev/null; then
-        print_error "未找到 Python 3"
-        print_info "请安装 Python 3.12.12 或更高版本"
-        exit 1
-    fi
-
-    local python_version=$(python3 --version 2>&1 | awk '{print $2}')
-    local min_version="3.12.12"
-
-    # 比较版本号
-    if ! printf '%s\n' "$min_version" "$python_version" | sort -V -C; then
-        print_error "Python 版本过低: $python_version (需要 >= $min_version)"
-        exit 1
-    fi
-
-    print_success "Python 版本检查通过: $python_version"
-}
-
 # 检查/安装 uv
 check_uv() {
     print_step "检查 uv 包管理器..."
@@ -88,11 +66,13 @@ check_uv() {
     if command -v uv &> /dev/null; then
         local uv_version=$(uv --version 2>&1 | head -1)
         print_success "uv 已安装: $uv_version"
+        return 0
     else
         print_warning "uv 未安装，正在安装..."
         if curl -LsSf https://astral.sh/uv/install.sh | sh; then
             export PATH="$HOME/.local/bin:$PATH"
             print_success "uv 安装完成"
+            return 0
         else
             print_error "uv 安装失败"
             print_info "请手动安装: https://github.com/astral-sh/uv"
@@ -101,12 +81,57 @@ check_uv() {
     fi
 }
 
+# 检查 Python 版本（通过 uv）
+check_python_version() {
+    print_step "检查 Python 版本..."
+
+    local min_version="3.12.12"
+
+    # 首先尝试获取 uv 管理的 Python 版本
+    if command -v uv &> /dev/null; then
+        # 检查是否有已安装的符合条件的 Python 版本
+        local available_python=$(uv python list 2>/dev/null | grep -E "3\.(1[2-9]|[2-9][0-9])" | head -1 || true)
+
+        if [[ -n "$available_python" ]]; then
+            local python_version=$(echo "$available_python" | awk '{print $1}')
+            print_success "找到 uv 管理的 Python: $python_version"
+            return 0
+        fi
+
+        # 尝试查找系统可用的 Python 3.12+
+        if uv python find 3.12 &> /dev/null; then
+            print_success "uv 可以安装 Python 3.12+"
+            print_info "将在需要时自动安装"
+            return 0
+        fi
+
+        # 如果都找不到，提示用户
+        print_warning "未找到 Python 3.12.12 或更高版本"
+        print_info "uv 将在创建虚拟环境时自动安装 Python 3.12"
+        return 0
+    fi
+
+    # 降级到系统 Python 检查
+    if command -v python3 &> /dev/null; then
+        local python_version=$(python3 --version 2>&1 | awk '{print $2}')
+        if ! printf '%s\n' "$min_version" "$python_version" | sort -V -C; then
+            print_warning "系统 Python 版本: $python_version (要求 >= $min_version)"
+            print_info "uv 将自动安装符合要求的 Python 版本"
+            return 0
+        fi
+        print_success "系统 Python 版本: $python_version"
+    else
+        print_warning "未找到系统 Python"
+        print_info "uv 将自动安装 Python 3.12"
+    fi
+}
+
 # 检查前置条件
 check_prerequisites() {
     detect_os
     print_info "操作系统: $OS"
-    check_python_version
     check_uv
+    check_python_version
 }
 
 # 参数解析
