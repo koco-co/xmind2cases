@@ -23,14 +23,32 @@ cd xmind2cases
 ./init.sh
 ```
 
-### Windows (PowerShell)
+### Windows
+
+**方式 1: 双击运行（推荐）**
+
+1. 克隆项目
+   ```cmd
+   git clone https://github.com/koco-co/xmind2cases.git
+   cd xmind2cases
+   ```
+
+2. 双击 `init.bat` 文件即可
+
+**方式 2: 命令行运行**
+
+```cmd
+init.bat
+```
+
+**方式 3: PowerShell（功能更强大）**
 
 ```powershell
 # 1. 克隆项目
 git clone https://github.com/koco-co/xmind2cases.git
 cd xmind2cases
 
-# 2. 运行启动脚本（右键以管理员身份运行 PowerShell）
+# 2. 运行启动脚本
 .\init.ps1
 ```
 
@@ -41,6 +59,11 @@ cd xmind2cases
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
+
+**推荐优先级:**
+1. ⭐⭐⭐ **init.bat** - 双击运行，最简单
+2. ⭐⭐ **init.ps1** - 功能更强大，更好的错误处理
+3. ⭐ **手动安装** - 完全控制每个步骤
 
 ---
 

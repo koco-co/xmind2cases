@@ -32,12 +32,14 @@ cd xmind2cases
 
 **Windows 用户:**
 
-```powershell
-# 1. 克隆项目
-git clone https://github.com/koco-co/xmind2cases.git
-cd xmind2cases
+```cmd
+# 方式 1: 双击运行（推荐）
+# 双击 init.bat 文件即可
 
-# 2. 一键启动（PowerShell）
+# 方式 2: 命令行运行
+init.bat
+
+# 方式 3: PowerShell（更强大的功能）
 .\init.ps1
 ```
 
