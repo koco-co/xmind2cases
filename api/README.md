@@ -1,32 +1,32 @@
 # xmind2cases API 文档
 
+## 快速开始
+
+### 启动服务
+
+```bash
+# 开发环境
+uvicorn api.main:app --reload
+
+# 生产环境
+uvicorn api.main:app --host 0.0.0.0 --workers 4
+```
+
+### 访问文档
+
+启动后访问：
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
 ## 概述
 
 FastAPI 异步 REST API，用于 XMind 到测试用例的转换和管理。
 
 ## 技术栈
 
-- **框架**: FastAPI 0.115+
-- **服务器**: Uvicorn (ASGI)
-- **数据库**: SQLite + SQLAlchemy 2.0 (async)
-- **数据验证**: Pydantic v2
-- **迁移**: Alembic
-
-## 目录结构
-
-```
-api/
-├── main.py           # FastAPI 应用入口
-├── config.py         # 配置管理
-├── core/             # 核心功能
-│   ├── database.py   # 数据库连接
-│   └── exceptions.py # 自定义异常
-├── models/           # ORM 模型
-├── schemas/          # Pydantic 模型
-├── repositories/     # 数据访问层
-├── services/         # 业务逻辑层
-└── routes/           # API 路由
-```
+- **FastAPI** 0.115+
+- **SQLAlchemy** 2.0 (async)
+- **Pydantic** v2
 
 ## 端点列表
 
