@@ -427,6 +427,65 @@ confirm_release() {
     print_success "发布确认"
 }
 
+# 更新文档中的版本号
+update_version_docs() {
+    print_step "更新文档版本号..."
+
+    # 这个函数是占位符，实际文档更新应在发布前手动完成
+    print_info "请确保 CHANGELOG.md 已更新"
+}
+
+# 提交更改
+git_commit_changes() {
+    print_step "提交代码更改..."
+
+    # 检查是否有未提交的更改
+    if [[ -n $(git status --porcelain) ]]; then
+        print_info "发现未提交的更改"
+        git status --short
+
+        echo ""
+        read -p "是否提交这些更改？(yes/no): " commit_confirm
+
+        if [[ "$commit_confirm" == "yes" ]]; then
+            print_info "添加所有更改..."
+            git add .
+
+            print_info "创建提交..."
+            git commit -m "chore: 🔄 prepare for release v$VERSION"
+
+            print_success "代码已提交"
+        else
+            print_warning "跳过代码提交"
+        fi
+    else
+        print_info "没有未提交的更改"
+    fi
+}
+
+# 创建 git tag
+create_git_tag() {
+    print_step "创建 Git 标签..."
+
+    local tag_name="v$VERSION"
+
+    if git rev-parse "$tag_name" >/dev/null 2>&1; then
+        print_warning "标签 $tag_name 已存在"
+        read -p "是否删除并重新创建？(yes/no): " recreate_confirm
+
+        if [[ "$recreate_confirm" == "yes" ]]; then
+            git tag -d "$tag_name"
+            git push origin ":refs/tags/$tag_name" 2>/dev/null || true
+        else
+            print_info "保留现有标签"
+            return 0
+        fi
+    fi
+
+    git tag -a "$tag_name" -m "Release $tag_name"
+    print_success "Git 标签已创建: $tag_name"
+}
+
 # 参数解析
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
