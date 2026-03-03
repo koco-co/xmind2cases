@@ -51,3 +51,9 @@ class TestCaseNotFoundError(NotFoundError):
     """测试用例不存在"""
 
     pass
+
+
+class XMindParserError(Xmind2CasesError):
+    """XMind 文件解析错误"""
+
+    pass
