@@ -1,126 +1,119 @@
-# 更新日志
+# Changelog
 
-所有重要的项目变更都将记录在此文件中。
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.7.0] - 2026-03-04
 
 ### Removed
 
-- 🗑️ 移除未完成的 FastAPI REST API 实现
-- 🗑️ 删除 FastAPI 相关目录：`api/`, `migrations/`, `tests/api/`
-- 🗑️ 移除 FastAPI 相关依赖：
+- Remove incomplete FastAPI REST API implementation
+- Remove FastAPI related directories: `api/`, `migrations/`, `tests/api/`
+- Remove FastAPI dependencies:
   - fastapi, uvicorn[standard]
   - sqlalchemy[asyncio], aiosqlite, alembic
   - pydantic, pydantic-settings
   - python-multipart, httpx, structlog
+- Remove `alembic.ini` configuration file
 
 ### Changed
 
-- 🔄 CLI 命令 `xmind2cases webtool` 改为启动 Flask Web 工具
-- 📝 更新 README.md，移除 FastAPI 启动说明
-- 🔧 更新 init.bat 启动脚本
-- ⚙️ 更新 pyproject.toml 依赖配置
+- CLI command `xmind2cases webtool` now launches Flask Web tool instead of FastAPI
+- Update README.md to remove FastAPI startup instructions
+- Update `init.bat` startup script
+- Update `pyproject.toml` dependencies configuration
+- Clean up `.vscode/settings.json` to remove FastAPI related spellcheck words
 
 ### Performance
 
-- ⚡ 虚拟环境大小减少 ~100MB（150MB → 51MB，-66%）
-- ⚡ 依赖安装速度提升
-- ⚡ 项目启动速度加快
+- Virtual environment size reduced by ~100MB (150MB → 51MB, -66%)
+- Dependency installation speed improved
+- Project startup speed improved
 
 ### Code Quality
 
-- ♻️ 删除 2,921 行未完成代码
-- 🧹 简化项目结构，提高可维护性
-- ✅ 所有测试通过（19/19）
+- Delete 2,921 lines of incomplete code
+- Simplify project structure and improve maintainability
+- All tests passing (19/19)
 
 ### Breaking Changes
 
-- ⚠️ **FastAPI REST API 已完全移除**
-- ⚠️ 如果您使用了 `xmind2cases webtool` 命令，它现在将启动 Flask Web 工具而不是 FastAPI
-- ✅ 核心功能不受影响：CLI、Flask Web 工具、Python API 仍完全可用
+- ⚠️ **FastAPI REST API has been completely removed**
+- The `xmind2cases webtool` command now launches Flask Web tool instead of FastAPI
+- Core functionality remains fully available: CLI, Flask Web tool, Python API
 
 ### Migration Guide
 
-如果您之前使用了 FastAPI 版本：
-1. Flask Web 工具提供相同的功能
-2. 使用 `uv run python webtool/application.py` 启动
-3. 或者使用命令：`xmind2cases webtool`（默认端口 5002）
+If you previously used the FastAPI version:
+
+1. Flask Web tool provides the same functionality
+2. Use `uv run python webtool/application.py` to start
+3. Or use the command: `xmind2cases webtool` (default port 5002)
 
 ## [1.6.1] - 2026-03-04
 
 ### Added
 
-- ✨ 支持 Windows 一键启动（init.bat/init.ps1）
-- ✨ 端口占用检测和交互式处理
-- ✨ UI 优化：图标化操作、紧凑布局、长文件名智能截断
+- Support Windows one-click startup (init.bat/init.ps1)
+- Port detection and interactive handling
+- UI improvements: iconized operations, compact layout, smart filename truncation
 
 ### Changed
 
-- 🔄 包名从 xmind2testcase 重命名为 xmind2cases
-- 📝 优化文档结构，删除重复内容
+- Rename package from xmind2testcase to xmind2cases
+- Optimize documentation structure, remove duplicate content
 
 ### Fixed
 
-- 🐛 修复禅道 CSV 导出格式问题：所有字段用双引号包裹
-- 🐛 修复前置条件中的换行符转换为 `<br>` 标签
+- Fix Zentao CSV export format: wrap all fields with double quotes
+- Fix newline conversion to `<br>` tags in preconditions
 
 ## [1.6.0] - 2026-03-03
 
 ### Added
 
-- ✨ 一键初始化脚本 init.sh，支持环境配置和发布流程
-- 🐍 Python 最低版本提升至 3.12.12
-- 🔧 集成现代化开发工具：ruff, pyright, pre-commit, rich
-- 🆕 支持 XMind 2026 文件格式（JSON 格式）
-- 🔄 同时兼容 XMind 8 及以前版本（XML 格式）
-- 🧪 添加完整的测试套件（单元、集成、E2E）
-- 📝 添加项目开发文档
+- One-click initialization script init.sh with environment setup and release workflow
+- Python minimum version raised to 3.12.12
+- Integrate modern development tools: ruff, pyright, pre-commit, rich
+- Support XMind 2026 file format (JSON format)
+- Support XMind 8 and earlier versions (XML format)
+- Add comprehensive test suite (unit, integration, E2E)
+- Add project development documentation
 
 ### Changed
 
-- 🔄 项目重命名为 xmind2cases（原 xmind2testcase）
-- 📦 使用 uv 替代 setuptools 进行构建和发布
-- ♻️ 底层解析库从 xmind 切换到 xmindparser
-- ⚠️ 错误处理更严格：文件不存在或格式错误时抛出异常
-- 🔧 改进数据验证和错误提示
-- 更新所有文档和命令名称
+- Rename project to xmind2cases (formerly xmind2testcase)
+- Use uv instead of setuptools for building and publishing
+- Switch underlying parsing library from xmind to xmindparser
+- Stricter error handling: raise exceptions for missing or malformed files
+- Improve data validation and error messages
+- Update all documentation and command names
 
 ### Removed
 
-- 🗑️ 删除过时的配置文件：pytest.ini, requirements.txt
-- 移除对旧版本 Python 的支持（< 3.12.12）
+- Remove obsolete configuration files: pytest.ini, requirements.txt
+- Drop support for Python versions < 3.12.12
 
 ### Fixed
 
-- 🐛 修复 xmind2026 文件解析乱码问题
+- Fix xmind2026 file parsing encoding issues
 
-### 新增
+### Technical Details
 
-- ✨ 支持 XMind 2026 文件格式（JSON 格式）
-- ✨ 同时兼容 XMind 8 及以前版本（XML 格式）
-- 🧪 添加完整的测试套件（单元、集成、E2E）
-- 📝 添加项目开发文档
+- Add `normalize_xmind_data()` adapter function for field mapping
+- Field mapping: `makers` → `markers`, `labels` → `label`
+- Test coverage reaches 56%+
+- Total test count: 19 (11 unit tests + 6 integration tests + 2 E2E tests)
 
-### 变更
+### Testing
 
-- ♻️ 底层解析库从 xmind 切换到 xmindparser
-- ⚠️ 错误处理更严格：文件不存在或格式错误时抛出异常
-- 🔧 改进数据验证和错误提示
+- ✅ xmind8 file parsing and conversion verified
+- ✅ xmind2026 file parsing and conversion verified
+- ✅ Both format output consistency verified
+- ✅ CSV, XML, JSON conversion functionality verified
 
-### 修复
+---
 
-- 🐛 修复 xmind2026 文件解析乱码问题
-
-### 技术细节
-
-- 添加 `normalize_xmind_data()` 适配器函数处理字段映射
-- 字段映射：`makers` → `markers`, `labels` → `label`
-- 测试覆盖率达到 56%+
-- 总测试数量：19 个（11 单元测试 + 6 集成测试 + 2 E2E 测试）
-
-### 测试验证
-
-- ✅ xmind8 文件解析和转换验证通过
-- ✅ xmind2026 文件解析和转换验证通过
-- ✅ 两种格式输出一致性验证通过
-- ✅ CSV、XML、JSON 转换功能验证通过
+**[Compare versions](https://github.com/koco-co/xmind2cases/compare/v1.6.1...v1.7.0)**
