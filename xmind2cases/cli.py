@@ -101,19 +101,19 @@ def _handle_xmind_conversion() -> None:
 
 def _handle_webtool() -> None:
     """Handle web tool launch with optional port number."""
-    import uvicorn
+    from webtool.application import launch
 
     if len(sys.argv) == 3:
         try:
             port = int(sys.argv[2])
         except ValueError:
-            port = 8000
+            port = 5002
     else:
-        port = 8000
+        port = 5002
 
-    click.echo(f"Starting FastAPI server on port {port}...")
-    click.echo(f"API docs available at: http://localhost:{port}/docs")
-    uvicorn.run("api.main:app", host="0.0.0.0", port=port, reload=True)
+    click.echo(f"Starting Flask web tool on port {port}...")
+    click.echo(f"Web interface available at: http://localhost:{port}")
+    launch(port=port)
 
 
 if __name__ == "__main__":

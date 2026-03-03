@@ -118,5 +118,5 @@ echo.
 echo ========================================
 echo.
 
-REM 启动 FastAPI 服务器
-uv run python -m uvicorn api.main:app --host 0.0.0.0 --port 5002 --reload
+REM 启动 Flask Web 工具
+uv run python webtool\application.py

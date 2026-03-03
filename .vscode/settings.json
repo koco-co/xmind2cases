@@ -1,3 +1,11 @@
 {
-  "cSpell.words": ["xmind"]
+  "cSpell.words": [
+    "asyncio",
+    "filterwarnings",
+    "pytest",
+    "testpaths",
+    "webtool",
+    "xmind",
+    "xmindparser"
+  ]
 }

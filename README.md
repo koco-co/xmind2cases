@@ -68,9 +68,7 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
 uv sync
 
 # 启动 Web 工具
-uv run python webtool/application.py  # Flask 版本（推荐）
-# 或
-uv run python -m uvicorn api.main:app --reload  # FastAPI 版本
+uv run python webtool/application.py  # Flask Web 工具
 ```
 
 ### 发布流程
