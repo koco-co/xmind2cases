@@ -174,6 +174,43 @@ cleanup_project() {
     print_success "项目清理完成"
 }
 
+# 安装单个工具
+install_tool() {
+    local tool=$1
+    local check_cmd=$2
+
+    if eval "$check_cmd &> /dev/null"; then
+        print_success "$tool 已安装"
+    else
+        print_step "安装 $tool..."
+        if uv tool install "$tool"; then
+            print_success "$tool 安装完成"
+        else
+            print_error "$tool 安装失败"
+            return 1
+        fi
+    fi
+}
+
+# 安装开发工具
+install_tools() {
+    print_step "检查开发工具..."
+
+    # 确保在 PATH 中能找到 uv 安装的工具
+    export PATH="$HOME/.local/bin:$PATH"
+
+    # 安装 ruff
+    install_tool "ruff" "command -v ruff"
+
+    # 安装 pyright
+    install_tool "pyright" "command -v pyright"
+
+    # 安装 pre-commit
+    install_tool "pre-commit" "command -v pre-commit"
+
+    print_success "开发工具检查完成"
+}
+
 # 参数解析
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
