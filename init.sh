@@ -366,10 +366,67 @@ run_type_check() {
 # 启动 Web 工具
 start_webtool() {
     print_step "启动 Web 工具..."
+
+    local PORT=5002
+    local MAX_RETRIES=3
+    local retry_count=0
+
+    # 检查端口是否被占用
+    while [ $retry_count -lt $MAX_RETRIES ]; do
+        if lsof -ti :$PORT > /dev/null 2>&1; then
+            local PID=$(lsof -ti :$PORT)
+            local CMD=$(ps -p $PID -o command= 2>/dev/null || echo "未知")
+
+            print_warning "端口 $PORT 已被占用"
+            echo ""
+            echo -e "\033[1;33m进程信息:\033[0m"
+            echo "  PID: \033[1;31m$PID\033[0m"
+            echo "  命令: $CMD"
+            echo ""
+
+            # 询问用户是否要终止占用进程
+            echo -ne "\033[1;33m是否要终止占用端口的进程? [y/N]: \033[0m"
+            read -r -t 30 ANSWER || ANSWER="n"
+            echo ""
+
+            case $(echo "$ANSWER" | tr '[:upper:]' '[:lower:]') in
+                y|yes)
+                    print_info "正在终止进程 $PID..."
+                    if kill -9 $PID 2>/dev/null; then
+                        print_success "进程已终止"
+                        sleep 1
+                        break
+                    else
+                        print_error "无法终止进程 $PID"
+                        print_info "请手动执行: kill -9 $PID"
+                        return 1
+                    fi
+                    ;;
+                n|no|"")
+                    if [ $retry_count -lt $((MAX_RETRIES - 1)) ]; then
+                        print_info "等待 3 秒后重试... (剩余 $((MAX_RETRIES - retry_count - 1)) 次)"
+                        sleep 3
+                        retry_count=$((retry_count + 1))
+                    else
+                        print_error "端口 $PORT 仍被占用，启动取消"
+                        print_info "提示: 可以手动终止进程后重试"
+                        return 1
+                    fi
+                    ;;
+                *)
+                    print_error "无效输入"
+                    retry_count=$((retry_count + 1))
+                    ;;
+            esac
+        else
+            break
+        fi
+    done
+
     echo ""
     print_success "Web 工具启动成功！"
     echo ""
-    print_info "访问地址: \033[1;36mhttp://127.0.0.1:5002\033[0m"
+    print_info "访问地址: \033[1;36mhttp://127.0.0.1:$PORT\033[0m"
     print_info "按 \033[1;31mCtrl+C\033[0m 停止服务"
     echo ""
 
