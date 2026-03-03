@@ -105,8 +105,8 @@
                         <tbody class="bg-white divide-y divide-slate-200">
                             {% for record in records %}
                             <tr class="hover:bg-slate-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700" title="{{ record[1] }}">
-                                    {{ record[0] }}
+                                <td class="px-6 py-4 text-sm text-slate-700" title="{{ record[1] }}">
+                                    <span class="block max-w-[300px] truncate">{{ record[0] }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                     {{ record[2] }}
