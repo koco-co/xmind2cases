@@ -376,6 +376,57 @@ start_webtool() {
     uv run python webtool/application.py
 }
 
+# 验证版本一致性
+verify_version() {
+    print_step "验证版本一致性..."
+
+    # 从 pyproject.toml 提取版本号
+    local pyproject_ver=$(grep "^version = " pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+    if [[ -z "$pyproject_ver" ]]; then
+        print_error "无法从 pyproject.toml 读取版本号"
+        exit 1
+    fi
+
+    # 从 CHANGELOG.md 提取版本号
+    local changelog_ver=$(grep "^\[.*\]" CHANGELOG.md | head -1 | sed 's/\[\(.*\)\]/\1/' | sed 's/^v//')
+    if [[ -z "$changelog_ver" ]]; then
+        print_error "无法从 CHANGELOG.md 读取版本号"
+        exit 1
+    fi
+
+    # 比较版本号
+    if [[ "$pyproject_ver" != "$changelog_ver" ]]; then
+        print_error "版本不一致:"
+        print_info "  pyproject.toml: $pyproject_ver"
+        print_info "  CHANGELOG.md:  $changelog_ver"
+        exit 1
+    fi
+
+    print_success "版本一致: $pyproject_ver"
+    export VERSION="$pyproject_ver"
+}
+
+# 发布确认
+confirm_release() {
+    echo ""
+    print_warning "准备发布版本: \033[1;36m$VERSION\033[0m"
+    echo ""
+    print_info "将会执行以下操作:"
+    echo "  1. 构建项目并发布到 PyPI"
+    echo "  2. 创建 GitHub Release"
+    echo "  3. 推送 git tag 到 GitHub"
+    echo ""
+
+    read -p "确认发布？(输入 yes 继续): " confirm
+
+    if [[ "$confirm" != "yes" ]]; then
+        print_info "发布已取消"
+        exit 0
+    fi
+
+    print_success "发布确认"
+}
+
 # 参数解析
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
