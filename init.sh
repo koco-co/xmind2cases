@@ -380,7 +380,7 @@ start_webtool() {
             print_warning "端口 $PORT 已被占用"
             echo ""
             echo -e "\033[1;33m进程信息:\033[0m"
-            echo "  PID: \033[1;31m$PID\033[0m"
+            echo -e "  PID: \033[1;31m$PID\033[0m"
             echo "  命令: $CMD"
             echo ""
 
