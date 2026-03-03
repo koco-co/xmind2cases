@@ -65,10 +65,12 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+packages = ["xmind2testcase", "webtool"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["xmind2testcase", "webtool"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "webtool/static" = "webtool/static"
 "webtool/templates" = "webtool/templates"
-"README.md" = "."
