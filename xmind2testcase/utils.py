@@ -12,6 +12,30 @@ from xmind2testcase.metadata import TestSuite
 from xmind2testcase.parser import xmind_to_testsuites
 
 
+def normalize_xmind_data(xmind_dict: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Normalize xmindparser output to match legacy xmind library format.
+
+    Args:
+        xmind_dict: Raw output from xmindparser.xmind_to_dict()
+
+    Returns:
+        Normalized data structure matching old xmind library format
+
+    Raises:
+        ValueError: If input is invalid or empty
+    """
+    if not isinstance(xmind_dict, list):
+        raise ValueError(
+            f"Expected list from xmindparser, got {type(xmind_dict).__name__}"
+        )
+
+    if len(xmind_dict) == 0:
+        raise ValueError("XMind data is empty")
+
+    # 暂时返回原始数据
+    return xmind_dict
+
+
 def get_absolute_path(path: str) -> str:
     """Return the absolute path of a file.
 
