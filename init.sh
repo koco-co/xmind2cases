@@ -134,6 +134,46 @@ check_prerequisites() {
     check_python_version
 }
 
+# 清理项目文件
+cleanup_project() {
+    print_step "清理项目文件..."
+
+    # 需要删除的文件和目录
+    local remove_list=(
+        "dist"
+        "*.egg-info"
+        "htmlcov"
+        ".coverage"
+        ".pytest_cache"
+        ".venv"
+        "__pycache__"
+        "*.pyc"
+        ".idea"
+        ".vscode"
+        "logs"
+        "*.log"
+        ".DS_Store"
+        "Thumbs.db"
+    )
+
+    # 使用 find 命令删除匹配的文件
+    for item in "${remove_list[@]}"; do
+        if [[ "$item" == *"*"* ]]; then
+            # 处理通配符
+            find . -name "$item" -type f -delete 2>/dev/null || true
+            find . -name "$item" -type d -exec rm -rf {} + 2>/dev/null || true
+        else
+            # 处理固定名称
+            if [[ -d "$item" ]]; then
+                rm -rf "$item" 2>/dev/null || true
+            fi
+            find . -name "$item" -type d -exec rm -rf {} + 2>/dev/null || true
+        fi
+    done
+
+    print_success "项目清理完成"
+}
+
 # 参数解析
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
