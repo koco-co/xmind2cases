@@ -15,4 +15,12 @@ __pycache__
 *data.db3
 *running.log
 uploads
-docs
+# docs directory is ignored, except for design documents
+docs/*.xmind
+docs/*.csv
+docs/*.json
+# 但允许 docs/plans 目录
+!docs/plans/
+
+
+logs
