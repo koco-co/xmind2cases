@@ -123,7 +123,7 @@ def gen_case_step_and_expected_result(steps: List[Dict[str, Any]]) -> Tuple[str,
 
     for step_dict in steps:
         step_num = step_dict["step_number"]
-        actions = step_dict["actions"].replace("\n", "").strip()
+        actions = step_dict["actions"].strip()
         case_step += f"{step_num}. {actions}\n"
 
         expected_results = step_dict.get("expectedresults", "")
