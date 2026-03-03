@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ name }} | XMind2TestCase Preview</title>
     <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" type="image/x-icon"/>
-    <!-- 移除旧的 CSS 引用 -->
-    <!-- <link rel="stylesheet" type="text/css" media="all" href="{{ url_for('static',filename='css/pure-min.css') }}"> -->
-    <!-- <link rel="stylesheet" type="text/css" media="all" href="{{ url_for('static',filename='css/custom.css') }}"> -->
+    <!-- 保留 Pure.css 直到迁移完成 -->
+    <link rel="stylesheet" type="text/css" media="all" href="{{ url_for('static',filename='css/pure-min.css') }}">
+    <link rel="stylesheet" type="text/css" media="all" href="{{ url_for('static',filename='css/custom.css') }}">
     <!-- 添加 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
