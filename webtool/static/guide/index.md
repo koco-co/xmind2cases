@@ -1,4 +1,4 @@
-# XMind2TestCase 使用指南
+# XMind2Cases 使用指南
 
 
 ### 一、XMind测试用例通用模板
@@ -116,5 +116,5 @@ xmind2cases webtool 8000   => launch the web testcase convertion tool locally ->
 
 ### 五、相关内容
 - [XMind测试用例模板.xmind下载](XMind测试用例模板.xmind)
-- [XMind2TestCase:一个高效测试用例设计的解决方案！](https://github.com/zhuifengshen/xmind2cases)
+- [XMind2Cases:一个高效测试用例设计的解决方案！](https://github.com/zhuifengshen/xmind2cases)
 - [XMind:XMind思维导图创建、解析、更新的一站式解决方案！](https://github.com/zhuifengshen/xmind)
