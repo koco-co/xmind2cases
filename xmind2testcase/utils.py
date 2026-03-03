@@ -45,6 +45,13 @@ def normalize_xmind_data(xmind_dict: List[Dict[str, Any]]) -> List[Dict[str, Any
         if 'markers' not in topic:
             topic['markers'] = []
 
+        # 字段映射：labels → label
+        if 'labels' in topic and isinstance(topic['labels'], list):
+            # 取第一个 label，或 None
+            topic['label'] = topic['labels'][0] if topic['labels'] else None
+        elif 'label' not in topic:
+            topic['label'] = None
+
         # 递归处理子 topics
         if 'topics' in topic and isinstance(topic['topics'], list):
             topic['topics'] = [
