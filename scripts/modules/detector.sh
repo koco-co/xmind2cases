@@ -6,26 +6,24 @@ detect_uv() {
 
     # 检查 1: 标准 PATH
     if command -v uv &> /dev/null; then
-        local uv_path=$(command -v uv)
-        local uv_ver=$("$uv_path" --version 2>&1 | head -1)
-        uv_info="$uv_path|$uv_ver"
+        uv_info="$(command -v uv)|$(uv --version 2>&1 | head -1)"
     fi
 
     # 检查 2: Homebrew 路径 (macOS - Intel)
     if [[ -z "$uv_info" ]] && [[ -f "/usr/local/bin/uv" ]]; then
-        uv_info="/usr/local/bin/uv|$(/usr/local/bin/uv --version 2>&1 | head -1)"
+        uv_info="/usr/local/bin/uv|uv version unknown"
     fi
 
     # 检查 3: Homebrew 路径 (macOS - Apple Silicon)
     if [[ -z "$uv_info" ]] && [[ -f "/opt/homebrew/bin/uv" ]]; then
-        uv_info="/opt/homebrew/bin/uv|$(/opt/homebrew/bin/uv --version 2>&1 | head -1)"
+        uv_info="/opt/homebrew/bin/uv|uv version unknown"
     fi
 
     # 检查 4: npm 全局安装路径
     if [[ -z "$uv_info" ]] && command -v npm &> /dev/null; then
         local npm_prefix=$(npm config get prefix 2>/dev/null)
         if [[ -f "$npm_prefix/bin/uv" ]]; then
-            uv_info="$npm_prefix/bin/uv|$("$npm_prefix/bin/uv" --version 2>&1 | head -1)"
+            uv_info="$npm_prefix/bin/uv|uv version unknown"
         fi
     fi
 
@@ -38,7 +36,7 @@ detect_uv() {
         )
         for path in "${local_paths[@]}"; do
             if [[ -f "$path" ]]; then
-                uv_info="$path|$("$path" --version 2>&1 | head -1)"
+                uv_info="$path|uv version unknown"
                 break
             fi
         done
