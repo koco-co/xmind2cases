@@ -2,31 +2,56 @@
 # detector.sh - 智能检测模块
 
 detect_uv() {
-    local uv_paths=(
-        "$HOME/.local/bin/uv"
-        "$HOME/.cargo/bin/uv"
-        "/usr/local/bin/uv"
-        "/opt/homebrew/bin/uv"
-        "$HOME/bin/uv"
-        "./.venv/bin/uv"
-        "./venv/bin/uv"
-        "./.venv/scripts/uv.exe"
-        "./venv/scripts/uv.exe"
-    )
+    local uv_info=""
 
-    for path in "${uv_paths[@]}"; do
-        if [[ -x "$path" ]]; then
-            echo "$path"
-            return 0
-        fi
-    done
-
+    # 检查 1: 标准 PATH
     if command -v uv &> /dev/null; then
-        command -v uv
-        return 0
+        local uv_path=$(command -v uv)
+        local uv_ver=$("$uv_path" --version 2>&1 | head -1)
+        uv_info="$uv_path|$uv_ver"
     fi
 
-    return 1
+    # 检查 2: Homebrew 路径 (macOS - Intel)
+    if [[ -z "$uv_info" ]] && [[ -f "/usr/local/bin/uv" ]]; then
+        uv_info="/usr/local/bin/uv|$(/usr/local/bin/uv --version 2>&1 | head -1)"
+    fi
+
+    # 检查 3: Homebrew 路径 (macOS - Apple Silicon)
+    if [[ -z "$uv_info" ]] && [[ -f "/opt/homebrew/bin/uv" ]]; then
+        uv_info="/opt/homebrew/bin/uv|$(/opt/homebrew/bin/uv --version 2>&1 | head -1)"
+    fi
+
+    # 检查 4: npm 全局安装路径
+    if [[ -z "$uv_info" ]] && command -v npm &> /dev/null; then
+        local npm_prefix=$(npm config get prefix 2>/dev/null)
+        if [[ -f "$npm_prefix/bin/uv" ]]; then
+            uv_info="$npm_prefix/bin/uv|$("$npm_prefix/bin/uv" --version 2>&1 | head -1)"
+        fi
+    fi
+
+    # 检查 5: pip/cargo 安装路径
+    if [[ -z "$uv_info" ]]; then
+        local local_paths=(
+            "$HOME/.local/bin/uv"
+            "$HOME/.cargo/bin/uv"
+            "$HOME/bin/uv"
+        )
+        for path in "${local_paths[@]}"; do
+            if [[ -f "$path" ]]; then
+                uv_info="$path|$("$path" --version 2>&1 | head -1)"
+                break
+            fi
+        done
+    fi
+
+    # 返回检测结果
+    if [[ -n "$uv_info" ]]; then
+        echo "found|$uv_info"
+        return 0
+    else
+        echo "not_found||"
+        return 1
+    fi
 }
 
 detect_package_managers() {
