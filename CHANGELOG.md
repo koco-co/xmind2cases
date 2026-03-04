@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-03-04
+
+### Added
+
+- **Modular init script architecture** - Refactored init.sh and init.bat into 8 reusable modules
+- **Smart uv detection** - Support 10+ installation paths (PATH, homebrew Intel/ARM, npm, pip, cargo, .local/bin, etc.)
+- **Multiple installation methods** - Interactive installer supporting homebrew/npm/pip/cargo/curl/scoop (6 methods)
+- **Network retry mechanism** - 3 retry attempts with exponential backoff for downloads
+- **Error diagnosis** - Intelligent error analysis and fix suggestions
+- **State persistence** - JSON-based state management supporting resume and checkpoint recovery
+- **Diagnostic information** - Save diagnostic info to ~/.xmind2cases/diagnostics/ for troubleshooting
+
+### Changed
+
+- **init.sh** - Reduced from 821 lines to 313 lines (62% reduction) through modularization
+- **Better error handling** - Unified error handling interface across all initialization steps
+- **Improved port handling** - Auto-find available ports instead of failing on port conflicts
+- **Enhanced shell compatibility** - Better support for zsh, bash, and different platforms
+
+### Fixed
+
+- **uv detection issues** - Fixed uv not being detected after installation via curl
+- **PATH persistence** - Automatically configure PATH in shell config files (.zshrc, .bashrc)
+- **Permission handling** - Graceful fallback when lacking write permissions
+
+### Documentation
+
+- Add `docs/scripts-architecture.md` - Comprehensive architecture documentation
+- Add module design principles and extension guide
+- Update README with new features and improvements
+
 ## [1.7.1] - 2026-03-04
 
 ### Added
