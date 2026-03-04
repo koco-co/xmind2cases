@@ -48,25 +48,19 @@ init_helpers() {
         "fallback"
     )
 
-    log_info "Initializing helper modules..."
+    echo "[$(date +"%Y-%m-%d %H:%M:%S")] [init] Initializing helper modules..." >&2
 
     for module in "${modules[@]}"; do
         if ! load_module "$module"; then
-            log_error "Failed to load module: $module"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] [error] Failed to load module: $module" >&2
             return 1
         fi
     done
 
-    log_info "All helper modules loaded successfully"
+    echo "[$(date +"%Y-%m-%d %H:%M:%S")] [init] All helper modules loaded successfully" >&2
 
     # Initialize state
     init_state
-
-    # Log environment info
-    log_debug "Script directory: $SCRIPT_DIR"
-    log_debug "Modules directory: $MODULES_DIR"
-    log_debug "Shell: $SHELL"
-    log_debug "User: $USER"
 
     return 0
 }

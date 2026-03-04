@@ -86,6 +86,31 @@ cleanup_logging() {
     fi
 }
 
+# 调试日志（仅日志文件）
+log_debug() {
+    local message="$1"
+    log_message "DEBUG" "$message"
+}
+
+# 警告日志（仅日志文件）
+log_warn() {
+    local message="$1"
+    log_message "WARNING" "$message"
+}
+
+# 错误日志（仅日志文件）
+log_error() {
+    local message="$1"
+    log_message "ERROR" "$message"
+}
+
+# 信息日志（仅日志文件）
+log_info() {
+    local message="$1"
+    log_message "INFO" "$message"
+}
+
 # 导出函数供其他模块使用
 export -f print_step print_success print_error print_warning print_info
 export -f init_logging cleanup_logging
+export -f log_debug log_warn log_error log_info
