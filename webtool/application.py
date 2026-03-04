@@ -59,6 +59,7 @@ ALLOWED_EXTENSIONS = ["xmind"]
 DEBUG = True
 DATABASE = os.path.join(here, "data.db3")
 HOST = "0.0.0.0"
+PORT = int(os.environ.get("FLASK_PORT", "5002"))
 
 # Flask app
 app = Flask(__name__)
@@ -488,7 +489,7 @@ def app_error(e: Exception) -> str:
     return str(e)
 
 
-def launch(host: str = HOST, debug: bool = True, port: int = 5002) -> None:
+def launch(host: str = HOST, debug: bool = True, port: int = PORT) -> None:
     """Launch the Flask web application.
 
     Args:
@@ -502,4 +503,4 @@ def launch(host: str = HOST, debug: bool = True, port: int = 5002) -> None:
 
 if __name__ == "__main__":
     init()  # Initialize the database
-    app.run(HOST, debug=DEBUG, port=5002)
+    app.run(HOST, debug=DEBUG, port=PORT)

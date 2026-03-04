@@ -272,6 +272,8 @@ start_webtool() {
     echo "  ⏹  按 Ctrl+C 停止服务"
     echo ""
 
+    # 设置 Flask 端口环境变量
+    export FLASK_PORT="$PORT"
     uv run python webtool/application.py
 }
 
