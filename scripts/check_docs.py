@@ -36,11 +36,7 @@ def check_readme():
 
 def check_changelog_version():
     """检查 CHANGELOG 与 pyproject.toml 版本匹配"""
-    try:
-        import toml
-    except ImportError:
-        print("⚠️  跳过版本检查（toml 未安装，运行: pip install toml）")
-        return True
+    import tomllib
 
     pyproject_path = Path("pyproject.toml")
     changelog_path = Path("CHANGELOG.md")
@@ -53,7 +49,8 @@ def check_changelog_version():
         print("❌ CHANGELOG.md 文件不存在")
         return False
 
-    pyproject = toml.load(pyproject_path)
+    with pyproject_path.open("rb") as f:
+        pyproject = tomllib.load(f)
     version = pyproject["project"]["version"]
 
     changelog = changelog_path.read_text(encoding="utf-8")
