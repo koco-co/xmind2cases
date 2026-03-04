@@ -59,15 +59,25 @@ init_helpers() {
 
     echo "[$(date +"%Y-%m-%d %H:%M:%S")] [init] All helper modules loaded successfully" >&2
 
-    # Initialize state
-    init_state
-
     return 0
+}
+
+init_environment() {
+    # Initialize logging
+    init_logging
+
+    # Detect OS and shell (export as global variables)
+    OS="$(detect_os)"
+    SHELL_TYPE="$(detect_shell)"
+
+    export OS
+    export SHELL_TYPE
 }
 
 # Auto-initialize if sourced
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
     init_helpers
+    init_environment
 fi
 
-export -f load_module init_helpers log_module
+export -f load_module init_helpers init_environment log_module
