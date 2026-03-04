@@ -124,6 +124,27 @@ check_port_available() {
     fi
 }
 
+# 终止占用指定端口的进程
+kill_port_process() {
+    local port="$1"
+
+    if command -v lsof &> /dev/null; then
+        local pid=$(lsof -ti :"$port" 2>/dev/null)
+        if [[ -n "$pid" ]]; then
+            print_info "终止占用端口 $port 的进程 (PID: $pid)..."
+            kill "$pid" 2>/dev/null
+            sleep 1
+            # 如果进程还在，强制杀掉
+            if lsof -ti :"$port" &> /dev/null; then
+                kill -9 "$pid" 2>/dev/null
+            fi
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 # 查找可用端口
 find_available_port() {
     local start_port="${1:-5002}"
@@ -174,5 +195,5 @@ detect_shell() {
 # 导出函数
 export -f setup_path configure_shell_path
 export -f compare_versions validate_version
-export -f check_port_available find_available_port
+export -f check_port_available find_available_port kill_port_process
 export -f detect_os detect_shell

@@ -257,12 +257,13 @@ verify_setup() {
 start_webtool() {
     print_step "启动 Web 工具..."
 
-    local PORT
-    PORT=$(find_available_port 5002)
+    local PORT="5002"
 
-    if [[ -z "$PORT" ]]; then
-        print_error "无法找到可用端口"
-        exit 1
+    # 如果端口被占用，终止占用进程
+    if ! check_port_available "$PORT"; then
+        print_warning "端口 $PORT 被占用，正在清理..."
+        kill_port_process "$PORT"
+        sleep 1
     fi
 
     echo ""
