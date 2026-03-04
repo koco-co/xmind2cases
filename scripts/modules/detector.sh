@@ -4,42 +4,34 @@
 detect_uv() {
     local uv_info=""
 
-    # 检查 1: 标准 PATH
-    if command -v uv &> /dev/null; then
-        uv_info="$(command -v uv)|$(uv --version 2>&1 | head -1)"
-    fi
+    # 定义所有可能的 uv 安装路径（按优先级排序）
+    local uv_paths=(
+        "/opt/homebrew/bin/uv"           # Homebrew ARM (Apple Silicon)
+        "/usr/local/bin/uv"              # Homebrew Intel
+        "$HOME/.local/bin/uv"            # pip/curl 官方安装脚本
+        "$HOME/.cargo/bin/uv"            # cargo 安装
+        "$HOME/bin/uv"                   # 其他自定义路径
+        "/usr/bin/uv"                    # 系统包管理器
+        "/opt/uv/bin/uv"                 # 自定义安装
+    )
 
-    # 检查 2: Homebrew 路径 (macOS - Intel)
-    if [[ -z "$uv_info" ]] && [[ -f "/usr/local/bin/uv" ]]; then
-        uv_info="/usr/local/bin/uv|uv version unknown"
-    fi
-
-    # 检查 3: Homebrew 路径 (macOS - Apple Silicon)
-    if [[ -z "$uv_info" ]] && [[ -f "/opt/homebrew/bin/uv" ]]; then
-        uv_info="/opt/homebrew/bin/uv|uv version unknown"
-    fi
-
-    # 检查 4: npm 全局安装路径
-    if [[ -z "$uv_info" ]] && command -v npm &> /dev/null; then
-        local npm_prefix=$(npm config get prefix 2>/dev/null)
-        if [[ -f "$npm_prefix/bin/uv" ]]; then
-            uv_info="$npm_prefix/bin/uv|uv version unknown"
+    # 直接检查所有已知路径，避免使用 command -v
+    for uv_path in "${uv_paths[@]}"; do
+        if [[ -f "$uv_path" ]] && [[ -x "$uv_path" ]]; then
+            uv_info="$uv_path|uv version unknown"
+            break
         fi
-    fi
+    done
 
-    # 检查 5: pip/cargo 安装路径
+    # 如果直接路径检查失败，尝试使用 PATH（但使用更安全的方式）
     if [[ -z "$uv_info" ]]; then
-        local local_paths=(
-            "$HOME/.local/bin/uv"
-            "$HOME/.cargo/bin/uv"
-            "$HOME/bin/uv"
-        )
-        for path in "${local_paths[@]}"; do
-            if [[ -f "$path" ]]; then
-                uv_info="$path|uv version unknown"
-                break
+        # 使用 type 命令代替 command -v（更可靠）
+        local uv_loc=""
+        if uv_loc=$(type -P uv 2>/dev/null); then
+            if [[ -f "$uv_loc" ]]; then
+                uv_info="$uv_loc|uv version unknown"
             fi
-        done
+        fi
     fi
 
     # 返回检测结果
@@ -79,40 +71,80 @@ detect_package_managers() {
 }
 
 detect_python() {
-    local python_versions=()
+    # 辅助函数：安全地提取 Python 版本（避免 grep -P）
+    _extract_version() {
+        local output="$1"
+        # 使用 sed 代替 grep -P（更好的兼容性）
+        echo "$output" | sed -nE 's/.* ([0-9]+\.[0-9]+)\.?[0-9]*.*/\1/p' 2>/dev/null || echo ""
+    }
 
-    if command -v python3 &> /dev/null; then
-        local version=$(python3 --version 2>&1 | grep -oP '\d+\.\d+')
-        python_versions+=("python3:$version")
-    fi
+    # 检查 python3
+    if [[ -f "/usr/bin/python3" ]] || [[ -f "/usr/local/bin/python3" ]] || [[ -f "/opt/homebrew/bin/python3" ]]; then
+        local py3_path=""
+        if [[ -f "/opt/homebrew/bin/python3" ]]; then
+            py3_path="/opt/homebrew/bin/python3"
+        elif [[ -f "/usr/local/bin/python3" ]]; then
+            py3_path="/usr/local/bin/python3"
+        else
+            py3_path="/usr/bin/python3"
+        fi
 
-    if command -v python &> /dev/null; then
-        local version=$(python --version 2>&1 | grep -oP '\d+\.\d+')
-        if [[ ! " ${python_versions[@]} " =~ " python3:$version " ]]; then
-            python_versions+=("python:$version")
+        if [[ -x "$py3_path" ]]; then
+            local version_output=$("$py3_path" --version 2>&1 || echo "")
+            local version=$(_extract_version "$version_output")
+            if [[ -n "$version" ]]; then
+                echo "found|$py3_path|$version"
+                return 0
+            fi
         fi
     fi
 
-    if command -v python3.12 &> /dev/null; then
-        python_versions+=("python3.12:3.12")
+    # 检查 python
+    if [[ -f "/usr/bin/python" ]] || [[ -f "/usr/local/bin/python" ]]; then
+        local py_path=""
+        if [[ -f "/usr/local/bin/python" ]]; then
+            py_path="/usr/local/bin/python"
+        else
+            py_path="/usr/bin/python"
+        fi
+
+        if [[ -x "$py_path" ]]; then
+            local version_output=$("$py_path" --version 2>&1 || echo "")
+            local version=$(_extract_version "$version_output")
+            if [[ -n "$version" ]]; then
+                echo "found|$py_path|$version"
+                return 0
+            fi
+        fi
     fi
 
-    if command -v python3.11 &> /dev/null; then
-        python_versions+=("python3.11:3.11")
+    # 检查特定版本（仅文件检查，不执行命令）
+    if [[ -f "/opt/homebrew/bin/python3.12" ]] || [[ -f "/usr/local/bin/python3.12" ]]; then
+        echo "found|/opt/homebrew/bin/python3.12|3.12"
+        return 0
     fi
 
-    if command -v python3.10 &> /dev/null; then
-        python_versions+=("python3.10:3.10")
+    if [[ -f "/opt/homebrew/bin/python3.11" ]] || [[ -f "/usr/local/bin/python3.11" ]]; then
+        echo "found|/opt/homebrew/bin/python3.11|3.11"
+        return 0
     fi
 
-    echo "${python_versions[@]}"
+    if [[ -f "/opt/homebrew/bin/python3.10" ]] || [[ -f "/usr/local/bin/python3.10" ]]; then
+        echo "found|/opt/homebrew/bin/python3.10|3.10"
+        return 0
+    fi
+
+    echo "not_found||"
+    return 1
 }
 
 check_uv_installation() {
-    local uv_path=$(detect_uv)
-    if [[ -n "$uv_path" ]]; then
-        local version=$("$uv_path" --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo "unknown")
-        echo "installed|$uv_path|$version"
+    local uv_result=$(detect_uv)
+    if [[ "$uv_result" == found* ]]; then
+        local uv_info="${uv_result#found|}"
+        local uv_path="${uv_info%|*}"
+        # 不执行 uv --version 以避免卡住
+        echo "installed|$uv_path|version unknown"
         return 0
     fi
     echo "not_found||"

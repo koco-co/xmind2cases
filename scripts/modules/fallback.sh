@@ -48,12 +48,16 @@ install_dependencies_with_fallback() {
 }
 
 install_dependencies_direct() {
-    local uv_path=$(detect_uv)
+    local uv_result=$(detect_uv)
 
-    if [[ -z "$uv_path" ]]; then
+    if [[ "$uv_result" != found* ]]; then
         log_error "UV not found. Cannot install dependencies."
         return 1
     fi
+
+    # 解析 uv 路径
+    local uv_info="${uv_result#found|}"
+    local uv_path="${uv_info%|*}"
 
     log_info "Installing dependencies with UV..."
 
@@ -67,12 +71,16 @@ install_dependencies_direct() {
 }
 
 install_dependencies_minimal() {
-    local uv_path=$(detect_uv)
+    local uv_result=$(detect_uv)
 
-    if [[ -z "$uv_path" ]]; then
+    if [[ "$uv_result" != found* ]]; then
         log_error "UV not found. Cannot install dependencies."
         return 1
     fi
+
+    # 解析 uv 路径
+    local uv_info="${uv_result#found|}"
+    local uv_path="${uv_info%|*}"
 
     log_info "Attempting minimal dependency installation..."
 
@@ -94,8 +102,11 @@ install_dependencies_minimal() {
 clear_uv_cache() {
     log_info "Clearing UV cache..."
 
-    local uv_path=$(detect_uv)
-    if [[ -n "$uv_path" ]]; then
+    local uv_result=$(detect_uv)
+    if [[ "$uv_result" == found* ]]; then
+        # 解析 uv 路径
+        local uv_info="${uv_result#found|}"
+        local uv_path="${uv_info%|*}"
         "$uv_path" cache clean 2>/dev/null || true
         log_info "UV cache cleared"
     fi

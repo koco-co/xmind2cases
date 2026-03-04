@@ -26,11 +26,23 @@ init_logging() {
 
     # 如果目录不存在且不是当前目录，创建它
     if [[ "$log_dir" != "." ]] && [[ ! -d "$log_dir" ]]; then
-        mkdir -p "$log_dir" 2>/dev/null || true
+        if ! mkdir -p "$log_dir" 2>/dev/null; then
+            # 如果创建目录失败，禁用日志文件
+            LOG_FILE=""
+            return
+        fi
+    fi
+
+    # 验证目录是否可写
+    if [[ -n "$LOG_FILE" ]] && [[ ! -w "$log_dir" ]]; then
+        LOG_FILE=""
+        return
     fi
 
     # 记录开始时间
-    echo "=== Session started at $(date -u +"%Y-%m-%d %H:%M:%S UTC") ===" >> "$LOG_FILE" 2>/dev/null || true
+    if [[ -n "$LOG_FILE" ]]; then
+        echo "=== Session started at $(date -u +"%Y-%m-%d %H:%M:%S UTC") ===" >> "$LOG_FILE" 2>/dev/null || LOG_FILE=""
+    fi
 }
 
 # 打印步骤信息
@@ -75,7 +87,12 @@ log_message() {
     local timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
 
     if [[ -n "$LOG_FILE" ]]; then
-        echo "[$timestamp] $level: $message" >> "$LOG_FILE" 2>/dev/null || true
+        # 检查日志文件目录是否可写
+        local log_dir
+        log_dir="$(dirname "$LOG_FILE")"
+        if [[ -d "$log_dir" ]] && [[ -w "$log_dir" ]]; then
+            echo "[$timestamp] $level: $message" >> "$LOG_FILE" 2>/dev/null || true
+        fi
     fi
 }
 

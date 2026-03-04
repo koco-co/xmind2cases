@@ -115,7 +115,7 @@ check_python_version() {
 
     local python_result=$(detect_python)
 
-    if [[ "$python_result" == found_* ]]; then
+    if [[ "$python_result" == found* ]]; then
         local python_ver="${python_result#*|}"
         print_success "Python: $python_ver"
         return 0

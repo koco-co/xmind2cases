@@ -9,10 +9,10 @@ setup_path() {
     # 检查路径是否已存在
     if [[ ":$PATH:" != *":$new_path:"* ]]; then
         export PATH="$new_path:$PATH"
-        return 0
-    else
-        return 1
     fi
+
+    # 始终返回成功，避免在 set -e 模式下导致脚本退出
+    return 0
 }
 
 # 配置 shell 配置文件的 PATH
