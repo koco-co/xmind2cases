@@ -231,6 +231,28 @@ install_uv_with_fallback() {
     return 1
 }
 
+# 智能同步依赖（根据模式）
+sync_dependencies_smart() {
+    local dev_mode="$1"
+
+    if [[ "$dev_mode" == "true" ]]; then
+        if check_dev_dependencies_installed; then
+            log_info "开发依赖已安装，验证更新..."
+            uv sync --all-groups
+        else
+            log_info "安装所有依赖（包括开发工具）..."
+            uv sync --all-groups
+        fi
+    else
+        if check_dev_dependencies_installed; then
+            log_info "当前为发布模式，但检测到开发依赖已安装"
+            log_info "这是正常的，开发依赖将被保留"
+        fi
+        log_info "安装核心依赖..."
+        uv sync --no-dev
+    fi
+}
+
 export -f install_dependencies_with_fallback install_dependencies_direct
 export -f install_dependencies_minimal clear_uv_cache cleanup_installation_artifacts
-export -f retry_with_different_network install_uv_with_fallback
+export -f retry_with_different_network install_uv_with_fallback sync_dependencies_smart

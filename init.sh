@@ -187,17 +187,21 @@ setup_environment() {
         print_info "虚拟环境已存在"
     fi
 
-    # 安装依赖（带回退机制）
-    install_dependencies_with_fallback
+    # 智能同步依赖
+    sync_dependencies_smart "$DEV_MODE"
 
-    # 安装 pre-commit hooks
-    print_info "安装 pre-commit hooks..."
-    if [[ -f ".pre-commit-config.yaml" ]]; then
-        if uv run pre-commit install; then
-            print_success "pre-commit hooks 安装完成"
-        else
-            print_warning "pre-commit hooks 安装失败（非阻塞）"
+    # 安装 pre-commit hooks（仅开发模式）
+    if [[ "$DEV_MODE" == "true" ]]; then
+        print_info "安装 pre-commit hooks..."
+        if [[ -f ".pre-commit-config.yaml" ]]; then
+            if uv run pre-commit install; then
+                print_success "pre-commit hooks 安装完成"
+            else
+                print_warning "pre-commit hooks 安装失败（非阻塞）"
+            fi
         fi
+    else
+        print_info "发布模式：跳过 pre-commit hooks"
     fi
 
     print_success "环境配置完成"
