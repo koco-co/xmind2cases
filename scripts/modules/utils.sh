@@ -162,9 +162,9 @@ detect_os() {
 
 # 检测 shell 类型
 detect_shell() {
-    if [[ -n "$ZSH_VERSION" ]]; then
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
         echo "zsh"
-    elif [[ -n "$BASH_VERSION" ]]; then
+    elif [[ -n "${BASH_VERSION:-}" ]]; then
         echo "bash"
     else
         echo "unknown"
