@@ -58,19 +58,31 @@ xmind2cases 项目初始化脚本
   ./init.sh [选项]
 
 选项:
-  --dev           启用开发模式（配置环境、运行测试、启动 Web 工具）
-  --no-webtool    仅配置环境，不启动 Web 工具
-  --verbose       详细输出模式
-  --help          显示此帮助信息
+  --dev          开发模式（安装所有依赖、运行测试、安装 pre-commit）
+  --no-webtool   仅配置环境，不启动 Web 工具
+  --verbose      详细输出模式
+  --help         显示此帮助信息
 
 示例:
-  ./init.sh                # 配置环境并启动 Web 工具
-  ./init.sh --no-webtool   # 仅配置环境
-  ./init.sh --dev          # 开发模式（包含测试验证）
+  ./init.sh              # 发布模式：快速启动（推荐用户使用）
+  ./init.sh --dev        # 开发模式：完整开发环境（推荐开发者使用）
+  ./init.sh --no-webtool # 仅配置环境，不启动服务
 
 环境要求:
   - Python 3.12 或更高版本
   - macOS/Linux，或 Windows (WSL/Git Bash)
+
+模式说明:
+  发布模式（默认）:
+    - 只安装核心运行时依赖
+    - 跳过测试和 pre-commit hooks
+    - 快速启动 Web 工具
+
+  开发模式 (--dev):
+    - 安装所有依赖（包括测试、构建工具）
+    - 运行完整测试套件
+    - 安装 pre-commit hooks
+    - 启动 Web 工具
 EOF
 }
 
@@ -279,24 +291,20 @@ dev_flow() {
     fi
 }
 
-# 发布流程（保持原有逻辑）
-release_flow() {
-    check_prerequisites
-    cleanup_project
-    install_tools
-    setup_environment
-    verify_setup
-
-    # ... 其他发布步骤（保持原有实现）
-    print_info "发布流程（待实现）"
-}
-
 # 主函数
 main() {
     parse_arguments "$@"
 
     echo ""
     print_step "xmind2cases 项目初始化"
+    echo ""
+
+    # 显示当前模式
+    if [[ "$DEV_MODE" == "true" ]]; then
+        print_info "模式: 开发模式"
+    else
+        print_info "模式: 发布模式"
+    fi
     echo ""
 
     # 初始化状态
@@ -307,11 +315,7 @@ main() {
     fi
 
     # 执行流程
-    if [[ "$DEV_MODE" == "true" ]]; then
-        dev_flow
-    else
-        dev_flow
-    fi
+    dev_flow
 }
 
 # 执行主函数
