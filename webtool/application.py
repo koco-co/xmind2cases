@@ -2,16 +2,21 @@
 # -*- coding: utf-8 -*-
 """Flask web application for XMind to testcase conversion."""
 
+import csv
+import io
 import json
 import logging
 import os
 import re
 from os.path import exists, join
 from typing import Any, Generator, List, Optional, Tuple
+from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.dom import minidom
 
 import arrow
 from flask import (
     Flask,
+    Response,
     abort,
     g,
     jsonify,
@@ -165,6 +170,117 @@ def delete_records(keep: int = 20) -> None:
         _delete_related_files(record.name)
         record.is_deleted = 1
     db.session.commit()
+
+
+def get_column_value(testcase: dict, column: dict, row_index: int) -> str:
+    """根据列配置获取单元格值"""
+    col_id = column.get('id')
+    is_custom = column.get('is_custom', False)
+    default_value = column.get('default_value', '')
+
+    if is_custom:
+        # 自定义列：从 values 中获取，或使用默认值
+        values = column.get('values', {})
+        return values.get(str(row_index), default_value)
+
+    # 原始列：从 testcase 获取
+    if col_id == 'suite':
+        return testcase.get('suite', '')
+    elif col_id == 'name':
+        return testcase.get('name', '')
+    elif col_id == 'preconditions':
+        return testcase.get('preconditions', '')
+    elif col_id == 'steps':
+        steps = testcase.get('steps', [])
+        return '\n'.join([f"{i+1}. {s.get('actions', '')}" for i, s in enumerate(steps)])
+    elif col_id == 'expectedresults':
+        steps = testcase.get('steps', [])
+        return '\n'.join([f"{i+1}. {s.get('expectedresults', '')}" for i, s in enumerate(steps)])
+    elif col_id == 'importance':
+        return str(testcase.get('importance', ''))
+    elif col_id == 'execution_type':
+        return default_value or str(testcase.get('execution_type', ''))
+    elif col_id == 'stage':
+        return default_value
+
+    return default_value
+
+
+def generate_csv_with_columns(testcases: list, columns: list) -> str:
+    """根据列配置生成 CSV 内容"""
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator='\n')
+
+    # 过滤可见列并排序
+    visible_columns = sorted(
+        [c for c in columns if c.get('visible', True)],
+        key=lambda x: x.get('order', 0)
+    )
+
+    # 写入表头
+    header = [c.get('name', '') for c in visible_columns]
+    writer.writerow(header)
+
+    # 写入数据行
+    for idx, tc in enumerate(testcases, 1):
+        row = [get_column_value(tc, c, idx) for c in visible_columns]
+        writer.writerow(row)
+
+    return output.getvalue()
+
+
+def generate_xml_with_columns(testcases: list, columns: list) -> str:
+    """根据列配置生成 TestLink XML 内容"""
+    # 过滤可见列并排序
+    visible_columns = sorted(
+        [c for c in columns if c.get('visible', True)],
+        key=lambda x: x.get('order', 0)
+    )
+
+    root = Element('testcases')
+
+    for idx, tc in enumerate(testcases, 1):
+        testcase_el = SubElement(root, 'testcase')
+        testcase_el.set('name', tc.get('name', ''))
+
+        # 添加 summary
+        summary = SubElement(testcase_el, 'summary')
+        summary.text = tc.get('name', '')
+
+        # 添加 preconditions
+        preconditions = SubElement(testcase_el, 'preconditions')
+        preconditions.text = tc.get('preconditions', '')
+
+        # 添加 importance
+        importance = SubElement(testcase_el, 'importance')
+        importance.text = str(tc.get('importance', 2))
+
+        # 添加 steps
+        steps_el = SubElement(testcase_el, 'steps')
+        for step_idx, step in enumerate(tc.get('steps', []), 1):
+            step_el = SubElement(steps_el, 'step')
+            step_number = SubElement(step_el, 'step_number')
+            step_number.text = str(step_idx)
+            actions = SubElement(step_el, 'actions')
+            actions.text = step.get('actions', '')
+            expected = SubElement(step_el, 'expectedresults')
+            expected.text = step.get('expectedresults', '')
+
+        # 添加自定义列作为 custom_fields
+        custom_columns = [c for c in visible_columns if c.get('is_custom')]
+        if custom_columns:
+            custom_fields_el = SubElement(testcase_el, 'custom_fields')
+            for col in custom_columns:
+                cf_el = SubElement(custom_fields_el, 'custom_field')
+                name_el = SubElement(cf_el, 'name')
+                name_el.text = col.get('name', '')
+                value_el = SubElement(cf_el, 'value')
+                value_el.text = get_column_value(tc, col, idx)
+
+    # 格式化 XML
+    rough_string = tostring(root, encoding='unicode')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
 
 
 def get_latest_record() -> Optional[Tuple[str, str, str, str, int]]:
@@ -531,6 +647,60 @@ def set_default_preference(pref_id):
         "success": True,
         "message": "已设为默认偏好"
     })
+
+
+# ==================== 导出 API ====================
+
+@app.route('/api/export/<filename>/csv', methods=['POST'])
+def export_csv_with_preference(filename):
+    """按指定偏好导出 CSV"""
+    full_path = join(app.config['UPLOAD_FOLDER'], filename)
+    if not exists(full_path):
+        abort(404)
+
+    data = request.get_json() or {}
+    pref_id = data.get('preference_id')
+
+    if pref_id:
+        pref = ColumnPreference.query.get(pref_id)
+        columns = json.loads(pref.columns_json) if pref else DEFAULT_COLUMNS
+    else:
+        columns = DEFAULT_COLUMNS
+
+    testcases = get_xmind_testcase_list(full_path)
+    csv_content = generate_csv_with_columns(testcases, columns)
+
+    return Response(
+        csv_content,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename[:-6]}.csv'}
+    )
+
+
+@app.route('/api/export/<filename>/xml', methods=['POST'])
+def export_xml_with_preference(filename):
+    """按指定偏好导出 XML"""
+    full_path = join(app.config['UPLOAD_FOLDER'], filename)
+    if not exists(full_path):
+        abort(404)
+
+    data = request.get_json() or {}
+    pref_id = data.get('preference_id')
+
+    if pref_id:
+        pref = ColumnPreference.query.get(pref_id)
+        columns = json.loads(pref.columns_json) if pref else DEFAULT_COLUMNS
+    else:
+        columns = DEFAULT_COLUMNS
+
+    testcases = get_xmind_testcase_list(full_path)
+    xml_content = generate_xml_with_columns(testcases, columns)
+
+    return Response(
+        xml_content,
+        mimetype='application/xml',
+        headers={'Content-Disposition': f'attachment; filename={filename[:-6]}.xml'}
+    )
 
 
 @app.errorhandler(Exception)
