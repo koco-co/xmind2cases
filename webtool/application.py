@@ -14,6 +14,7 @@ from flask import (
     Flask,
     abort,
     g,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -427,6 +428,109 @@ def delete_file(filename: str, record_id: int) -> Any:
 
     delete_record(filename, record_id)
     return redirect("/")
+
+
+# ==================== 偏好管理 API ====================
+
+@app.route('/api/preferences', methods=['GET'])
+def get_preferences():
+    """获取所有偏好列表"""
+    preferences = ColumnPreference.query.order_by(ColumnPreference.id).all()
+    return jsonify({
+        "success": True,
+        "data": [p.to_dict() for p in preferences]
+    })
+
+
+@app.route('/api/preferences/<int:pref_id>', methods=['GET'])
+def get_preference(pref_id):
+    """获取单个偏好详情"""
+    pref = ColumnPreference.query.get(pref_id)
+    if not pref:
+        return jsonify({"success": False, "message": "偏好不存在"}), 404
+    return jsonify({
+        "success": True,
+        "data": pref.to_dict()
+    })
+
+
+@app.route('/api/preferences', methods=['POST'])
+def create_preference():
+    """新建偏好"""
+    data = request.get_json()
+    name = data.get('name', '新偏好')
+    columns = data.get('columns', DEFAULT_COLUMNS)
+
+    pref = ColumnPreference(
+        name=name,
+        columns_json=json.dumps(columns, ensure_ascii=False),
+        is_default=False
+    )
+    db.session.add(pref)
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "data": {"id": pref.id}
+    })
+
+
+@app.route('/api/preferences/<int:pref_id>', methods=['PUT'])
+def update_preference(pref_id):
+    """更新偏好"""
+    pref = ColumnPreference.query.get(pref_id)
+    if not pref:
+        return jsonify({"success": False, "message": "偏好不存在"}), 404
+
+    data = request.get_json()
+    if 'name' in data:
+        pref.name = data['name']
+    if 'columns' in data:
+        pref.columns_json = json.dumps(data['columns'], ensure_ascii=False)
+
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": "偏好已更新"
+    })
+
+
+@app.route('/api/preferences/<int:pref_id>', methods=['DELETE'])
+def delete_preference(pref_id):
+    """删除偏好"""
+    pref = ColumnPreference.query.get(pref_id)
+    if not pref:
+        return jsonify({"success": False, "message": "偏好不存在"}), 404
+
+    if pref.is_default:
+        return jsonify({"success": False, "message": "不能删除默认偏好"}), 400
+
+    db.session.delete(pref)
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": "偏好已删除"
+    })
+
+
+@app.route('/api/preferences/<int:pref_id>/default', methods=['POST'])
+def set_default_preference(pref_id):
+    """设为默认偏好"""
+    pref = ColumnPreference.query.get(pref_id)
+    if not pref:
+        return jsonify({"success": False, "message": "偏好不存在"}), 404
+
+    # 取消其他默认
+    ColumnPreference.query.update({'is_default': False})
+    pref.is_default = True
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": "已设为默认偏好"
+    })
 
 
 @app.errorhandler(Exception)
