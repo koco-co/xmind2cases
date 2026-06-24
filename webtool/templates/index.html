@@ -136,13 +136,12 @@
       </div>
 
       <div class="records__table">
+        {% if records %}
         <div class="rec-header">
           <div>文件名</div>
           <div>时间</div>
           <div class="rec-header__actions">操作</div>
         </div>
-
-        {% if records %}
           {% for record in records %}
           <div class="rec-row">
             <div class="rec-row__name">
