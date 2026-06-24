@@ -1,7 +1,7 @@
 /**
  * 预览页面列自定义交互脚本 v2
  * 保留既有数据流（init/fetchPage/renderPagination/doExport/saveCurrentTemplate/
- * debounceSave/handleDrag*/swapColumnOrder/getColumnValueRaw/escapeHtml）
+ * debounceSave、handleDrag*、swapColumnOrder、getColumnValueRaw、escapeHtml）
  * 替换渲染层为 v2 markup (renderTable/renderCell)
  * 新增 priorityMeta/fetchHealth/renderHealth
  */
