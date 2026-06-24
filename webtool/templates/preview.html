@@ -1,203 +1,155 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ name }} | XMind2Cases Preview</title>
-    <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" type="image/x-icon"/>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-                        serif: ['Instrument Serif', 'Georgia', 'serif'],
-                    },
-                    colors: {
-                        slate: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            200: '#e2e8f0',
-                            300: '#cbd5e1',
-                            400: '#94a3b8',
-                            600: '#475569',
-                            700: '#334155',
-                            800: '#1e293b',
-                            900: '#0f172a',
-                        },
-                        accent: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/preview.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ name }} | XMind2Cases Preview</title>
+  <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" type="image/x-icon"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/theme.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/preview.css') }}">
 </head>
-<body class="preview-page bg-slate-50 font-sans text-slate-600 antialiased">
-    <!-- 顶部操作栏 -->
-    <div class="preview-header bg-white/95 backdrop-blur-sm border-b border-slate-200/80 sticky top-0 z-10 shadow-sm">
-        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <a href="{{ url_for('index') }}" class="text-slate-600 hover:text-slate-900">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                    </a>
-                    <div>
-                        <h1 class="text-lg font-semibold text-slate-900">{{ name }}</h1>
-                        <p class="text-sm text-slate-500">预览</p>
-                    </div>
-                </div>
+<body data-screen="preview">
 
-                <div class="header-toolbar flex flex-wrap items-center gap-2">
-                    <div class="header-toolbar-item header-toolbar-stat hidden sm:flex" title="统计">
-                        <div class="header-toolbar-value tabular-nums" id="suite-count-display">{{ suite_count }}</div>
-                        <div class="header-toolbar-label" id="suite-count-label">TestSuites</div>
-                    </div>
-                    <div class="header-toolbar-item header-toolbar-stat hidden sm:flex" title="统计">
-                        <div class="header-toolbar-value tabular-nums" id="total-count">{{ total }}</div>
-                        <div class="header-toolbar-label" id="total-count-label">TestCases</div>
-                    </div>
-                    {% if is_csv %}
-                    <button type="button" id="csv-download-btn"
-                            data-download-base="{{ url_for('download_xmind_from_csv', filename=name) }}"
-                            class="header-toolbar-item header-toolbar-btn header-toolbar-btn-csv">
-                        <svg class="header-toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        下载 XMind
-                    </button>
-                    {% else %}
-                    <button type="button" class="header-toolbar-item header-toolbar-btn header-toolbar-btn-csv export-btn" data-type="csv">
-                        <svg class="header-toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        <span class="hidden sm:inline">导出</span> CSV
-                    </button>
-                    <button type="button" class="header-toolbar-item header-toolbar-btn header-toolbar-btn-xml export-btn" data-type="xml">
-                        <svg class="header-toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                        <span class="hidden sm:inline">导出</span> XML
-                    </button>
-                    <button type="button" class="header-toolbar-item header-toolbar-btn header-toolbar-btn-settings" id="template-settings-btn" title="模版设置">
-                        <svg class="header-toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        模版设置
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a href="{{ url_for('index') }}" class="brand">
+        <div class="brand__logo">X</div>
+        <div>
+          <div class="brand__name">XMind2Cases</div>
+          <div class="brand__sub">本地优先的用例转换工具</div>
         </div>
+      </a>
+      <nav class="topbar__nav">
+        <a class="nav-link" href="{{ url_for('static', filename='guide/index.html') }}" target="_blank">使用指南</a>
+        <a class="nav-link" href="https://github.com/koco-co/xmind2cases/issues/new" target="_blank">反馈问题</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="preview">
+    <div class="pv-head">
+      <div class="pv-title">
+        <a class="pv-back" href="{{ url_for('index') }}" title="返回">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+        </a>
+        <div>
+          <h1 class="serif" id="pv-filename">{{ name }}</h1>
+          <p class="pv-sub">用例预览 · 模版：<span id="pv-tpl-name">默认</span></p>
+        </div>
+      </div>
+      <div class="pv-actions">
+        {% if not is_csv %}
+        <button class="btn btn--outline" id="edit-toggle">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>
+          编辑模式
+        </button>
+        <button class="btn btn--outline btn--disabled" id="diff-btn" title="暂未上线" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M18 9v3a3 3 0 0 1-3 3H9"></path></svg>
+          版本对比
+        </button>
+        <button class="btn btn--csv export-btn" data-type="csv">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M9 4v16"></path></svg>
+          导出 CSV
+        </button>
+        <button class="btn btn--xml export-btn" data-type="xml">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18l-4-6 4-6"></path><path d="M16 6l4 6-4 6"></path></svg>
+          导出 XML
+        </button>
+        <button class="btn btn--ink" id="tpl-settings-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>
+          模版设置
+        </button>
+        {% else %}
+        <button type="button" id="csv-download-btn"
+                data-download-base="{{ url_for('download_xmind_from_csv', filename=name) }}"
+                class="btn btn--outline">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          下载 XMind
+        </button>
+        {% endif %}
+      </div>
     </div>
 
-    <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="preview-card bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-            <div class="overflow-x-auto preview-table-container">
-                <table class="min-w-full divide-y divide-slate-200 preview-table">
-                    <thead class="preview-thead">
-                        <tr>
-                            <!-- 由 JS 动态渲染 -->
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
-                        <!-- 由 JS 动态渲染 -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="pagination-bar px-4 py-3 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2" id="pagination-bar">
-                <!-- 由 JS 动态渲染 -->
-            </div>
-        </div>
-    </main>
-
-    {% if is_csv %}
-    <!-- 分隔符选择弹窗：把用例标题按所选符号拆成 XMind 层级 -->
-    <div id="sep-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" id="sep-modal-backdrop"></div>
-        <div class="relative bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6">
-            <h3 class="text-lg font-semibold text-slate-900">选择标题分隔符</h3>
-            <p class="mt-1 text-sm text-slate-500">用例标题将按勾选的符号拆成 XMind 层级，任一符号都作为切分点。</p>
-            <div class="mt-4 space-y-3">
-                <label class="flex items-center gap-3 text-sm text-slate-700">
-                    <input type="checkbox" class="sep-opt w-4 h-4 accent-accent-600" value=" " checked>
-                    <span>空格</span>
-                </label>
-                <label class="flex items-center gap-3 text-sm text-slate-700">
-                    <input type="checkbox" class="sep-opt w-4 h-4 accent-accent-600" value=">">
-                    <span><code class="px-1 bg-slate-100 rounded">&gt;</code> 大于号</span>
-                </label>
-                <label class="flex items-center gap-3 text-sm text-slate-700">
-                    <input type="checkbox" class="sep-opt w-4 h-4 accent-accent-600" value="-">
-                    <span><code class="px-1 bg-slate-100 rounded">-</code> 连字符</span>
-                </label>
-                <label class="flex items-center gap-3 text-sm text-slate-700">
-                    <span>自定义</span>
-                    <input type="text" id="sep-custom" maxlength="10" placeholder="如 :: 或 |"
-                           class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500">
-                </label>
-            </div>
-            <p class="mt-3 text-xs text-slate-400">不勾选任何符号则不拆分，每条用例直接挂在模块下。</p>
-            <div class="mt-6 flex justify-end gap-2">
-                <button type="button" id="sep-cancel"
-                        class="px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50">取消</button>
-                <button type="button" id="sep-confirm"
-                        class="px-4 py-2 text-sm rounded-lg bg-accent-600 text-white hover:bg-accent-700">下载</button>
-            </div>
-        </div>
+    {% if not is_csv %}
+    <div class="health" id="health">
+      <!-- 用例体检 — JS 渲染后填充 -->
     </div>
-    <script>
-      (function () {
-        const btn = document.getElementById('csv-download-btn');
-        const modal = document.getElementById('sep-modal');
-        if (!btn || !modal) return;
-        const base = btn.dataset.downloadBase;
-        const close = () => modal.classList.add('hidden');
-        btn.addEventListener('click', () => modal.classList.remove('hidden'));
-        document.getElementById('sep-cancel').addEventListener('click', close);
-        document.getElementById('sep-modal-backdrop').addEventListener('click', close);
-        document.getElementById('sep-confirm').addEventListener('click', () => {
-          const seps = Array.from(document.querySelectorAll('.sep-opt:checked')).map(c => c.value);
-          const custom = document.getElementById('sep-custom').value;
-          if (custom) seps.push(custom);
-          let url = base;
-          if (seps.length === 0) {
-            url += '?flat=1';
-          } else {
-            url += '?' + seps.map(s => 'sep=' + encodeURIComponent(s)).join('&');
-          }
-          close();
-          window.location = url;
-        });
-      })();
-    </script>
+    <div class="edit-banner" id="edit-banner" hidden></div>
     {% endif %}
 
-    <footer class="mt-12 text-center text-sm text-slate-400 pb-8">
-        <a href="{{ url_for('static', filename='guide/index.html') }}" target="_blank" class="hover:text-slate-600">使用指南</a>
-        <span class="mx-2">|</span>
-        <a href="https://github.com/koco-co/xmind2cases/issues/new" target="_blank" class="hover:text-slate-600">反馈问题</a>
-        <span class="mx-2">|</span>
-        Powered by <a href="https://github.com/koco-co/xmind2cases" target="_blank" class="hover:text-slate-600">XMind2Cases</a>
-    </footer>
-    <script>
-      window.TESTCASES = [];
-      document.body.dataset.filename = "{{ name }}";
-      document.body.dataset.total = "{{ total }}";
-    </script>
-    <script src="{{ url_for('static', filename='js/preview.js') }}"></script>
+    <div class="case-card">
+      <div class="x-scroll" style="overflow-x:auto;">
+        <table class="case-table" id="case-table">
+          <thead><tr></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pagination-bar"></div>
+    </div>
+
+    <footer class="preview__footer">Powered by XMind2Cases · 本地优先的测试用例转换工具</footer>
+  </main>
+
+  {% if is_csv %}
+  <!-- 分隔符选择弹窗（Task 7 完成） -->
+  <div id="sep-modal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal__title">选择标题分隔符</div>
+      <div class="modal__divider"></div>
+      <p style="font-size:13px;color:var(--text-2);margin:0 0 16px;">用例标题将按勾选的符号拆成 XMind 层级，任一符号都作为切分点。</p>
+      <div class="modal__field" style="display:flex;flex-direction:column;gap:10px;">
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
+          <input type="checkbox" class="sep-opt" value=" " checked> 空格
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
+          <input type="checkbox" class="sep-opt" value=">"> <code>&gt;</code> 大于号
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
+          <input type="checkbox" class="sep-opt" value="-"> <code>-</code> 连字符
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
+          自定义 <input type="text" id="sep-custom" maxlength="10" placeholder="如 :: 或 |" class="modal__input" style="flex:1;padding:7px 10px;">
+        </label>
+      </div>
+      <p style="margin:12px 0 0;font-size:12px;color:var(--text-4);">不勾选任何符号则不拆分，每条用例直接挂在模块下。</p>
+      <div class="modal__actions" style="margin-top:20px;">
+        <button type="button" id="sep-cancel" class="btn btn--outline">取消</button>
+        <button type="button" id="sep-confirm" class="btn btn--ink">下载</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const btn = document.getElementById('csv-download-btn');
+      const modal = document.getElementById('sep-modal');
+      if (!btn || !modal) return;
+      const base = btn.dataset.downloadBase;
+      const close = () => modal.style.display = 'none';
+      btn.addEventListener('click', () => modal.style.display = 'flex');
+      document.getElementById('sep-cancel').addEventListener('click', close);
+      modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+      document.getElementById('sep-confirm').addEventListener('click', () => {
+        const seps = Array.from(document.querySelectorAll('.sep-opt:checked')).map(c => c.value);
+        const custom = document.getElementById('sep-custom').value;
+        if (custom) seps.push(custom);
+        let url = base;
+        if (seps.length === 0) { url += '?flat=1'; }
+        else { url += '?' + seps.map(s => 'sep=' + encodeURIComponent(s)).join('&'); }
+        close();
+        window.location = url;
+      });
+    })();
+  </script>
+  {% endif %}
+
+  <script>
+    document.body.dataset.filename = "{{ name }}";
+    document.body.dataset.total = "{{ total }}";
+    document.body.dataset.isCsv = "{{ '1' if is_csv else '0' }}";
+  </script>
+  <script src="{{ url_for('static',filename='js/preview.js') }}"></script>
 </body>
 </html>

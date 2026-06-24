@@ -121,3 +121,13 @@ def test_empty_cells_returns_health_summary(client):
     pc = data["priority_counts"]
     assert set(pc.keys()) == {"1", "2", "3", "4"}
     assert sum(pc.values()) == data["total"]
+
+
+def test_preview_renders_v2(client):
+    name = _seed_upload(client, "preview_demo.xmind")
+    resp = client.get(f"/preview/{name}")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "用例体检" in html
+    assert "preview.css" in html and "theme.css" in html
+    assert 'id="case-table"' in html
