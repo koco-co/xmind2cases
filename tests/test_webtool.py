@@ -4,6 +4,13 @@ import os
 import shutil
 import tempfile
 
+# IMPORTANT: set the DB env-var BEFORE importing the application module so that
+# the Flask app singleton binds to a temp DB at import time (not to data.db3).
+os.environ.setdefault(
+    "XMIND2CASES_DB",
+    os.path.join(tempfile.mkdtemp(prefix="x2c_testdb_"), "test.db3"),
+)
+
 import pytest
 
 from webtool import application as appmod
@@ -11,14 +18,13 @@ from webtool import application as appmod
 
 @pytest.fixture
 def client():
-    """Flask test client，使用临时 upload 目录与临时 sqlite。
+    """Flask test client，使用临时 upload 目录与隔离的临时 sqlite。
 
     Note: db is already bound via db.init_app(app) at module import time, so we
     do NOT call db.init_app(app) a second time (that would raise
     "A 'SQLAlchemy' instance has already been registered on this Flask application").
-    Instead we just ensure tables exist in the existing DB, and isolate uploads
-    to a temp directory (UPLOAD_FOLDER is read at request time, so this is reliable).
-    Tests assert on response JSON only, not on DB rows, so shared DB state is fine.
+    Instead we just ensure tables exist in the temp DB, and isolate uploads
+    to a per-test temp directory (UPLOAD_FOLDER is read at request time).
     """
     tmp = tempfile.mkdtemp(prefix="x2c_test_")
     upload = os.path.join(tmp, "uploads")

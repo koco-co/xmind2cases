@@ -65,7 +65,7 @@ werkzeug_logger.setLevel(logging.DEBUG)
 UPLOAD_FOLDER = os.path.join(here, "uploads")
 ALLOWED_EXTENSIONS = ["xmind", "csv"]
 DEBUG = True
-DATABASE = os.path.join(here, "data.db3")
+DATABASE = os.environ.get("XMIND2CASES_DB") or os.path.join(here, "data.db3")
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("FLASK_PORT", "5002"))
 
