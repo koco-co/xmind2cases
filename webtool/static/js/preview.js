@@ -56,28 +56,36 @@ const ColumnManager = {
     try {
       this.filename = document.body.dataset.filename || '';
       this.total = parseInt(document.body.dataset.total || '0', 10);
+      const isCsv = document.body.dataset.isCsv === '1';
       if (!this.filename) { console.error('未找到文件名'); return; }
 
-      const response = await fetch('/api/templates');
-      const result = await response.json();
-      if (result.success) {
-        this.templates = result.data.templates || [];
-        this.lastTemplateId = result.data.last_template_id;
-        const tpl = this.templates.find(t => t.id === this.lastTemplateId)
-          || this.templates[0]
-          || null;
-        this.currentTemplate = tpl;
+      if (!isCsv) {
+        // XMind 路径：拉取模版配置
+        const response = await fetch('/api/templates');
+        const result = await response.json();
+        if (result.success) {
+          this.templates = result.data.templates || [];
+          this.lastTemplateId = result.data.last_template_id;
+          const tpl = this.templates.find(t => t.id === this.lastTemplateId)
+            || this.templates[0]
+            || null;
+          this.currentTemplate = tpl;
+        }
+
+        // 更新模版名称显示
+        const tplNameEl = document.getElementById('pv-tpl-name');
+        if (tplNameEl && this.currentTemplate) tplNameEl.textContent = this.currentTemplate.name;
+
+        // 体检（全量）→ health bar → 首页数据
+        await this.fetchHealth();
+        this.renderHealth();
+        await this.fetchPage();
+        this.bindEvents();
+      } else {
+        // CSV 路径：跳过体检/模版/编辑/导出，直接渲染表格
+        // sep-modal 绑定由 preview.html 内联脚本负责
+        await this.fetchPage();
       }
-
-      // 更新模版名称显示
-      const tplNameEl = document.getElementById('pv-tpl-name');
-      if (tplNameEl && this.currentTemplate) tplNameEl.textContent = this.currentTemplate.name;
-
-      // 体检（全量）→ health bar → 首页数据
-      await this.fetchHealth();
-      this.renderHealth();
-      await this.fetchPage();
-      this.bindEvents();
     } catch (error) {
       console.error('ColumnManager 初始化失败:', error);
     }

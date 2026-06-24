@@ -131,3 +131,23 @@ def test_preview_renders_v2(client):
     assert "用例体检" in html
     assert "preview.css" in html and "theme.css" in html
     assert 'id="case-table"' in html
+
+
+def _seed_csv(client, name="zentao.csv"):
+    rows = (
+        "用例编号,所属产品,所属模块,用例标题,前置条件,步骤,预期,优先级,用例类型\n"
+        "TC001,产品A,/模块1,登录,已注册,1. 输入,1. 成功,1,功能测试\n"
+    )
+    client.post(
+        "/api/upload",
+        data={"file": (io.BytesIO(rows.encode("utf-8")), name)},
+        content_type="multipart/form-data",
+    )
+    return name
+
+
+def test_preview_csv_shows_download_xmind(client):
+    name = _seed_csv(client)
+    html = client.get(f"/preview/{name}").get_data(as_text=True)
+    assert "下载 XMind" in html
+    assert "用例体检" not in html  # CSV 不显示体检
