@@ -15,7 +15,7 @@ const DEFAULT_COLUMNS = [
   { id: 'importance', name: '优先级', order: 6, is_custom: false, rich_text_break: false, empty_check: false },
 ];
 
-const HEADER_COLOR_PRESETS = ['#FAF8F2', '#f8fafc', '#e0f2fe', '#f0fdf4', '#fefce8', '#fef3c7', '#fce7f3', '#ede9fe', '#f3e8ff', '#fae8ff'];
+const HEADER_COLOR_PRESETS = ['#FAF8F2', '#FEF2F2', '#F3F4F6', '#DBEAFE', '#DCFCE7', '#FEF9C3', '#FDE68A', '#FCE7F3', '#EDE9FE', '#F0E4F5'];
 
 /* ─── 优先级元数据 ─── */
 const PRIORITY = {
@@ -349,12 +349,15 @@ const ColumnManager = {
       tplSettingsBtn.addEventListener('click', () => this.openTemplateSettingsModal());
     }
 
-    // 编辑模式切换（Task 6 完整实现，这里只做骨架）
+    // 编辑模式切换（Phase 1：仅列管理）
     const editToggle = document.getElementById('edit-toggle');
     if (editToggle) {
       editToggle.addEventListener('click', () => {
         this.editMode = !this.editMode;
-        editToggle.textContent = this.editMode ? '退出编辑' : '编辑模式';
+        // 按钮文案与样式
+        editToggle.innerHTML = this.editMode
+          ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg> 完成编辑`
+          : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg> 编辑模式`;
         editToggle.classList.toggle('btn--ink', this.editMode);
         editToggle.classList.toggle('btn--outline', !this.editMode);
         const banner = document.getElementById('edit-banner');
@@ -362,7 +365,7 @@ const ColumnManager = {
           if (this.editMode) {
             banner.hidden = false;
             banner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
-              编辑模式：拖动表头可调整列顺序，点击 ✎ 改列、＋ 加列；单元格可直接修改。`;
+              编辑模式：拖动表头调列顺序、✎ 改列、＋ 加列；单元格内容编辑与增删行将在后续版本开放`;
           } else {
             banner.hidden = true;
           }
@@ -825,11 +828,11 @@ const ColumnManager = {
       optsField.innerHTML = `
         <label class="modal__check">
           <input type="checkbox" class="tpl-col-rich-text-break-input" ${col.rich_text_break ? 'checked' : ''}>
-          <span><span style="font-size:13px;font-weight:500;color:var(--text);">富文本换行处理</span><span style="display:block;font-size:12px;color:var(--text-3);">导出时将换行符转为 HTML 换行标签</span></span>
+          <span><span style="font-size:13px;font-weight:500;color:var(--text);">富文本换行处理</span><span style="display:block;font-size:12px;color:var(--text-3);">导出时将换行符转为 HTML 换行标签，便于在富文本编辑器中正确显示多行内容</span></span>
         </label>
         <label class="modal__check">
           <input type="checkbox" class="tpl-col-empty-check-input" ${col.empty_check ? 'checked' : ''}>
-          <span><span style="font-size:13px;font-weight:500;color:var(--text);">空值校验处理</span><span style="display:block;font-size:12px;color:var(--text-3);">当该列存在空值时显示提醒</span></span>
+          <span><span style="font-size:13px;font-weight:500;color:var(--text);">空值校验处理</span><span style="display:block;font-size:12px;color:var(--text-3);">当该列存在空值时显示提醒，并计入用例体检的「待补充」统计</span></span>
         </label>`;
       body.appendChild(optsField);
       row.appendChild(body);
@@ -969,9 +972,9 @@ const ColumnManager = {
   openAddColumnModal(afterColId) {
     this.showModal('新增列', [
       { id: 'name', label: '列名称', value: '未命名字段', placeholder: '未命名字段' },
-      { id: 'default_value', label: '默认值', value: '', placeholder: '可选，为空则留空' },
-      { id: 'rich_text_break', type: 'checkbox', label: '富文本换行处理', value: false, desc: '导出时将换行符转为 HTML 换行标签' },
-      { id: 'empty_check', type: 'checkbox', label: '空值校验处理', value: false, desc: '当该列存在空值时显示提醒' },
+      { id: 'default_value', label: '默认值', value: '', placeholder: '自定义列可设置，为空则留空' },
+      { id: 'rich_text_break', type: 'checkbox', label: '富文本换行处理', value: false, desc: '导出时将换行符转为 HTML 换行标签，便于在富文本编辑器中正确显示多行内容' },
+      { id: 'empty_check', type: 'checkbox', label: '空值校验处理', value: false, desc: '当该列存在空值时显示提醒，并计入用例体检的「待补充」统计' },
     ], async (data) => {
       await this.addColumn(data.name || '未命名字段', data.default_value || '', data.rich_text_break || false, data.empty_check || false, afterColId);
     });
@@ -983,9 +986,9 @@ const ColumnManager = {
     if (!column) return;
     this.showModal('编辑列', [
       { id: 'name', label: '列名称', value: column.name },
-      { id: 'default_value', label: '默认值', value: column.default_value || '', placeholder: '自定义列可设置' },
-      { id: 'rich_text_break', type: 'checkbox', label: '富文本换行处理', value: !!column.rich_text_break, desc: '导出时将换行符转为 HTML 换行标签' },
-      { id: 'empty_check', type: 'checkbox', label: '空值校验处理', value: !!column.empty_check, desc: '当该列存在空值时显示提醒' },
+      { id: 'default_value', label: '默认值', value: column.default_value || '', placeholder: '自定义列可设置，为空则留空' },
+      { id: 'rich_text_break', type: 'checkbox', label: '富文本换行处理', value: !!column.rich_text_break, desc: '导出时将换行符转为 HTML 换行标签，便于在富文本编辑器中正确显示多行内容' },
+      { id: 'empty_check', type: 'checkbox', label: '空值校验处理', value: !!column.empty_check, desc: '当该列存在空值时显示提醒，并计入用例体检的「待补充」统计' },
     ], async (data) => {
       await this.updateColumn(colId, data.name, data.default_value, data.rich_text_break, data.empty_check);
     });

@@ -485,6 +485,45 @@ td.editing { background: #FBF8F4; }
 .export-tpl-name { font-size: 14px; font-weight: 500; color: var(--text); }
 .export-tpl-desc { font-size: 12.5px; color: var(--text-3); }
 
+/* ─── 模版编辑弹窗：可折叠字段行 ─── */
+.tpl-edit-column-row {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.tpl-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 10px 14px;
+  background: var(--field-bg);
+  user-select: none;
+}
+.tpl-col-header:hover { background: #F3EFE6; }
+.tpl-col-toggle { color: var(--text-4); display: flex; flex: none; }
+.tpl-col-body {
+  padding: 12px 14px 10px 22px;
+  background: var(--surface);
+  border-top: 1px solid var(--row-divider);
+}
+.tpl-col-delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-4);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+.tpl-col-delete:hover { color: var(--p1-fg); background: #F6E7E2; }
+
+/* 色板网格（模版颜色选择）*/
+.color-swatch-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
 /* ─── 页脚 ─── */
 .preview__footer {
   margin-top: 34px;
