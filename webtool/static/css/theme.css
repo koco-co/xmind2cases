@@ -1,0 +1,79 @@
+:root{
+  --bg:#F0EEE6; --surface:#FFFFFF;
+  --border:#E7E3D8; --border-2:#E4E0D5; --divider:#EDE9DF; --row-divider:#F1EDE3;
+  --text:#2B2A27; --text-strong:#22211F; --text-2:#6B6A63; --text-3:#8A887E; --text-4:#A4A299;
+  --accent:#C96442; --accent-ink:#A4623F;
+  --ink:#262624; --ink-hover:#3A3835; --on-ink:#F5F2EC;
+  --toggle-track:#F3EFE6; --field-bg:#FBFAF6;
+  --selection:#E7D3C7; --scrollbar:#DBD6C9;
+  --p1-fg:#B5503A; --p1-bg:#F6E7E2;
+  --p2-fg:#9A7A2E; --p2-bg:#F6EFDD;
+  --p3-fg:#5E7355; --p3-bg:#EBF0E6;
+  --p4-fg:#7A7868; --p4-bg:#F0EDE4;
+  --warn-fg:#9A7A2E; --warn-bg:#F6EFDD; --warn-border:#E6D9B6; --warn-dash:#E2CF94;
+  --ok-fg:#5E7355; --ok-bg:#EFF3E9;
+  --radius-card:16px; --radius-btn:10px; --radius-chip:8px;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; min-height:100vh; background:var(--bg);
+  font-family:'Noto Sans SC','Helvetica Neue',sans-serif; color:var(--text);
+  -webkit-font-smoothing:antialiased; }
+::selection{ background:var(--selection); }
+.serif{ font-family:'Newsreader',serif; }
+a{ color:inherit; text-decoration:none; }
+
+.x-scroll::-webkit-scrollbar{ height:10px; width:10px; }
+.x-scroll::-webkit-scrollbar-thumb{ background:var(--scrollbar); border-radius:8px;
+  border:2px solid transparent; background-clip:padding-box; }
+.x-scroll::-webkit-scrollbar-track{ background:transparent; }
+@keyframes blink{ 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* 顶栏 */
+.topbar{ border-bottom:1px solid var(--border-2); background:rgba(240,238,230,0.85);
+  backdrop-filter:blur(8px); position:sticky; top:0; z-index:20; }
+.topbar__inner{ max-width:1320px; margin:0 auto; padding:16px 32px;
+  display:flex; align-items:center; justify-content:space-between; }
+.brand{ display:flex; align-items:center; gap:12px; cursor:pointer; }
+.brand__logo{ width:38px; height:38px; border-radius:10px; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(43,42,39,.18);
+  font-family:'Newsreader',serif; font-size:22px; font-weight:600; color:#FBF6EF; }
+.brand__name{ font-family:'Newsreader',serif; font-size:22px; font-weight:600; letter-spacing:-.01em; }
+.brand__sub{ font-size:12px; color:var(--text-3); }
+.topbar__nav{ display:flex; align-items:center; gap:22px; font-size:13.5px; color:var(--text-2); }
+.nav-link{ cursor:pointer; } .nav-link:hover{ color:var(--text); }
+
+/* 按钮 */
+.btn{ border:none; font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer;
+  border-radius:var(--radius-btn); padding:9px 14px; display:inline-flex; align-items:center; gap:7px; }
+.btn--ink{ background:var(--ink); color:var(--on-ink); } .btn--ink:hover{ background:var(--ink-hover); }
+.btn--outline{ background:var(--surface); color:#5A584F; border:1px solid var(--border-2); }
+.btn--outline:hover{ background:#F7F4EC; }
+.btn--csv{ background:#EFF3E9; color:#4F6248; border:1px solid #D3DDC9; }
+.btn--xml{ background:#F6EFDD; color:#9A7A2E; border:1px solid #E6D9B6; }
+.btn--disabled{ opacity:.5; cursor:not-allowed; }
+
+/* 分段开关 */
+.seg{ display:flex; background:var(--toggle-track); border-radius:11px; padding:4px; }
+.seg__btn{ border:none; background:transparent; color:#7A7868; font-family:inherit;
+  font-size:13.5px; font-weight:500; padding:9px 16px; border-radius:8px; cursor:pointer; }
+.seg__btn--on{ background:var(--ink); color:var(--on-ink); box-shadow:0 1px 2px rgba(43,42,39,.2); }
+
+/* 表单聚焦 */
+.modal__input:focus, textarea:focus, input:focus{ outline:none; }
+.modal__input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,100,66,.12); }
+
+/* 弹窗 */
+.modal-overlay{ position:fixed; inset:0; background:rgba(43,42,39,.32);
+  display:flex; align-items:center; justify-content:center; z-index:50; padding:24px; }
+.modal{ background:var(--surface); border-radius:18px; padding:28px; width:440px; max-width:100%;
+  box-shadow:0 20px 50px rgba(43,42,39,.25); }
+.modal__title{ font-family:'Newsreader',serif; font-weight:600; font-size:21px; margin:0 0 6px; color:var(--text-strong); }
+.modal__divider{ height:1px; background:var(--divider); margin:0 0 20px; }
+.modal__field{ margin-bottom:18px; }
+.modal__label{ display:block; font-size:13px; font-weight:500; color:#4A4843; margin-bottom:7px; }
+.modal__input{ width:100%; border:1px solid var(--border-2); border-radius:10px; padding:11px 13px;
+  font-size:14px; color:var(--text); font-family:'Noto Sans SC',sans-serif; }
+.modal__check{ display:flex; gap:12px; cursor:pointer; align-items:flex-start; }
+.modal__actions{ display:flex; justify-content:flex-end; gap:10px; }
+.swatch{ width:30px; height:30px; border-radius:8px; border:1px solid var(--border-2); cursor:pointer; }
+.swatch--on{ border:2px solid var(--accent); }
