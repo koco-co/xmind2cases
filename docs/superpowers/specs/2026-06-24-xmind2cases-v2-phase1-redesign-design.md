@@ -177,6 +177,7 @@ CTA 行为：
 ## 8. 后端改动汇总
 
 - **新增**：`POST /api/upload`（保存单文件 + 返回 `{success, filename}`，复用 `save_file()`）。
+- **扩展**：`GET /api/preview/<file>/empty-cells` 响应额外返回 `total` 与 `priority_counts`（`{"1".."4"}`→int），用于体检 bar 的全量优先级分布（全量解析本就发生，非新路由、非新能力）。`empty_cells` 行为保持不变，向后兼容。
 - **其余全部复用**现有路由，**0 改动**。`models.py` 不改。
 
 ---
