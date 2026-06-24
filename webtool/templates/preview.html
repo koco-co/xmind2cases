@@ -37,7 +37,7 @@
         </a>
         <div>
           <h1 class="serif" id="pv-filename">{{ name }}</h1>
-          <p class="pv-sub">用例预览 · 模版：<span id="pv-tpl-name">默认</span></p>
+          {% if is_csv %}<p class="pv-sub">用例预览</p>{% else %}<p class="pv-sub">用例预览 · 模版：<span id="pv-tpl-name">默认</span></p>{% endif %}
         </div>
       </div>
       <div class="pv-actions">

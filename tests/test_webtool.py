@@ -151,3 +151,5 @@ def test_preview_csv_shows_download_xmind(client):
     html = client.get(f"/preview/{name}").get_data(as_text=True)
     assert "下载 XMind" in html
     assert "用例体检" not in html  # CSV 不显示体检
+    assert 'id="csv-download-btn"' in html
+    assert "download_xmind_from_csv" in html or "/to/xmind-from-csv" in html

@@ -116,12 +116,12 @@ const ColumnManager = {
     const pc = this.priorityCounts || { '1': 0, '2': 0, '3': 0, '4': 0 };
     const empty = (this.emptyCells || []).length;
 
-    // 优先级颜色与原型 --p* 变量对应
+    // 优先级颜色与 spec §9 legend dot 色值对应
     const priColors = [
-      ['1', 'var(--p1-fg)'],
-      ['2', 'var(--p2-fg)'],
-      ['3', 'var(--p3-fg)'],
-      ['4', 'var(--p4-fg)'],
+      ['1', '#B5503A'],
+      ['2', '#C9A24A'],
+      ['3', '#7E9166'],
+      ['4', '#7A7868'],
     ];
     const dots = priColors
       .filter(([k]) => pc[k] > 0)
@@ -218,7 +218,7 @@ const ColumnManager = {
     if (col.type === 'index') return '';
 
     if (col.id === 'importance' || col.type === 'priority') {
-      const m = priorityMeta(tc.importance || 4);
+      const m = priorityMeta(tc.importance || 2);
       return `<span class="pri-badge pri-badge--${m.cls}">${m.label}</span>`;
     }
 
