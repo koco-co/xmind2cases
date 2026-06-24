@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  ::selection{ background:#E7D3C7; }
+  .x-scroll::-webkit-scrollbar{ height:10px; width:10px; }
+  .x-scroll::-webkit-scrollbar-thumb{ background:#DBD6C9; border-radius:8px; border:2px solid transparent; background-clip:padding-box; }
+  .x-scroll::-webkit-scrollbar-track{ background:transparent; }
+  @keyframes blink{ 0%,100%{opacity:1} 50%{opacity:.25} }
+  textarea.cell-edit, input.modal-input{ font-family:'Noto Sans SC',sans-serif; }
+  textarea.cell-edit:focus, input.modal-input:focus{ outline:none; border-color:#C96442; box-shadow:0 0 0 3px rgba(201,100,66,0.12); }
+  th.drag-over{ box-shadow:inset 3px 0 0 #C96442; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F0EEE6; font-family:'Noto Sans SC','Helvetica Neue',sans-serif; color:#2B2A27; -webkit-font-smoothing:antialiased;">
+
+  <!-- shared top bar -->
+  <header style="border-bottom:1px solid #E4E0D5; background:rgba(240,238,230,0.85); backdrop-filter:blur(8px); position:sticky; top:0; z-index:20;">
+    <div style="max-width:1320px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between;">
+      <div onClick="{{ goConvert }}" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+        <div style="width:38px; height:38px; border-radius:10px; background:#C96442; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(43,42,39,0.18);">
+          <span style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; color:#FBF6EF; line-height:1;">X</span>
+        </div>
+        <div style="display:flex; flex-direction:column; line-height:1.15;">
+          <span style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; letter-spacing:-0.01em;">XMind2Cases</span>
+          <span style="font-size:12px; color:#8A887E;">思维导图 · 测试用例 双向转换</span>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:22px; font-size:13.5px; color:#6B6A63;">
+        <span style="cursor:pointer;" style-hover="color:#2B2A27;">使用指南</span>
+        <span style="cursor:pointer;" style-hover="color:#2B2A27;">反馈问题</span>
+        <span style="width:1px; height:16px; background:#D8D3C6;"></span>
+        <span style="cursor:pointer;" style-hover="color:#2B2A27;">GitHub</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ CONVERT SCREEN ============ -->
+  <sc-if value="{{ isConvert }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="转换台">
+    <main style="max-width:780px; margin:0 auto; padding:52px 32px 80px;">
+      <div style="text-align:center; margin-bottom:32px;">
+        <h1 style="font-family:'Newsreader',serif; font-weight:500; font-size:40px; line-height:1.12; letter-spacing:-0.015em; margin:0 0 12px; color:#22211F;">一处转换，两个方向</h1>
+        <p style="font-size:15.5px; line-height:1.6; color:#6B6A63; margin:0 auto; max-width:480px;">XMind 思维导图与禅道 / TestLink 用例之间自由互转，全程本地完成，数据不出本机。</p>
+      </div>
+
+      <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:18px; padding:26px; box-shadow:0 1px 3px rgba(43,42,39,0.04);">
+        <!-- mode + direction -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; gap:14px; flex-wrap:wrap;">
+          <div style="display:flex; background:#F3EFE6; border-radius:11px; padding:4px;">
+            <button onClick="{{ setX2C }}" style="border:none; background:{{ x2cBg }}; color:{{ x2cFg }}; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 16px; border-radius:8px; cursor:pointer; box-shadow:{{ x2cShadow }};">XMind → 用例</button>
+            <button onClick="{{ setC2X }}" style="border:none; background:{{ c2xBg }}; color:{{ c2xFg }}; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 16px; border-radius:8px; cursor:pointer; box-shadow:{{ c2xShadow }};">CSV → XMind</button>
+          </div>
+          <div style="display:flex; background:#F3EFE6; border-radius:11px; padding:4px;">
+            <button onClick="{{ setSingle }}" style="border:none; background:{{ singleBg }}; color:{{ singleFg }}; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 16px; border-radius:8px; cursor:pointer; box-shadow:{{ singleShadow }};">单文件</button>
+            <button onClick="{{ setBatch }}" style="border:none; background:{{ batchBg }}; color:{{ batchFg }}; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 16px; border-radius:8px; cursor:pointer; box-shadow:{{ batchShadow }};">批量转换</button>
+          </div>
+        </div>
+
+        <!-- flow viz -->
+        <div style="display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:22px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:9px;">
+            <div style="width:60px; height:60px; border-radius:16px; background:#FBF4EE; border:1px solid #EBD8CC; display:flex; align-items:center; justify-content:center;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C96442" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M7.3 11l8.4-4M7.3 13l8.4 4"></path></svg>
+            </div>
+            <span style="font-size:13px; font-weight:500; color:#33322E;">{{ srcLabel }}</span>
+          </div>
+          <svg width="44" height="20" viewBox="0 0 44 20" fill="none" stroke="#C9A38E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10h38M33 3l7 7-7 7"></path></svg>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:9px;">
+            <div style="width:60px; height:60px; border-radius:16px; background:#F4F1E8; border:1px solid #E4E0D5; display:flex; align-items:center; justify-content:center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7A7868" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"></rect><path d="M3 9h18M9 9v12"></path></svg>
+            </div>
+            <span style="font-size:13px; font-weight:500; color:#33322E;">{{ tgtLabel }}</span>
+          </div>
+        </div>
+
+        <!-- dropzone -->
+        <div style="border:1.5px dashed #D8CFBF; border-radius:12px; background:#FBFAF6; padding:34px 24px; text-align:center; cursor:pointer; transition:all .18s;" style-hover="border-color:#C96442; background:#FBF4EE;">
+          <div style="width:48px; height:48px; border-radius:13px; background:#F3ECE1; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A4623F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M5 20h14"></path></svg>
+          </div>
+          <p style="font-size:15.5px; font-weight:500; color:#2B2A27; margin:0 0 5px;">{{ dropTitle }}</p>
+          <p style="font-size:13px; color:#8A887E; margin:0;">{{ dropSub }}</p>
+        </div>
+
+        <!-- single mode: outputs + convert -->
+        <sc-if value="{{ singleMode }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:10px; margin-top:16px; flex-wrap:wrap;">
+            <span style="font-size:12.5px; color:#9A988D;">输出格式</span>
+            <sc-for list="{{ outputs }}" as="out" hint-placeholder-count="2">
+              <span style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#5A584F; background:#F4F1E8; border:1px solid #E7E3D8; padding:5px 11px; border-radius:8px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:#C96442;"></span>{{ out.label }}
+              </span>
+            </sc-for>
+          </div>
+          <button onClick="{{ goPreview }}" style="margin-top:20px; width:100%; border:none; background:#262624; color:#F5F2EC; font-family:inherit; font-size:15px; font-weight:500; padding:13px; border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;" style-hover="background:#3A3835;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+            {{ convertLabel }}
+          </button>
+        </sc-if>
+
+        <!-- batch mode: queue -->
+        <sc-if value="{{ batchMode }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px; border:1px solid #EDE9DF; border-radius:12px; overflow:hidden;">
+            <sc-for list="{{ queue }}" as="q" hint-placeholder-count="4">
+              <div style="display:grid; grid-template-columns:1fr auto auto; gap:12px; padding:13px 16px; border-bottom:1px solid #F1EDE3; align-items:center;">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                  <span style="flex:none; width:28px; height:28px; border-radius:7px; background:#F4F1E8; display:flex; align-items:center; justify-content:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A887E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+                  </span>
+                  <div style="min-width:0;">
+                    <div style="font-size:13.5px; color:#33322E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ q.name }}</div>
+                    <div style="font-size:11.5px; color:#A4A299;">{{ q.dir }} · {{ q.meta }}</div>
+                  </div>
+                </div>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; color:{{ q.fg }}; background:{{ q.bg }}; padding:4px 10px; border-radius:8px; white-space:nowrap;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:{{ q.dot }}; animation:{{ q.anim }};"></span>{{ q.label }}
+                </span>
+                <span style="font-size:11.5px; color:#C2BFB4; cursor:pointer;" style-hover="color:#B5503A;">移除</span>
+              </div>
+            </sc-for>
+          </div>
+          <button onClick="{{ convertAll }}" style="margin-top:18px; width:100%; border:none; background:#262624; color:#F5F2EC; font-family:inherit; font-size:15px; font-weight:500; padding:13px; border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;" style-hover="background:#3A3835;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+            全部转换（{{ queueCount }}）
+          </button>
+        </sc-if>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:30px;">
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:14px; padding:16px 18px;">
+          <div style="font-family:'Newsreader',serif; font-size:27px; font-weight:600; color:#22211F; line-height:1;">128</div>
+          <div style="font-size:12.5px; color:#8A887E; margin-top:5px;">本月转换文件</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:14px; padding:16px 18px;">
+          <div style="font-family:'Newsreader',serif; font-size:27px; font-weight:600; color:#22211F; line-height:1;">2,341</div>
+          <div style="font-size:12.5px; color:#8A887E; margin-top:5px;">生成测试用例</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:14px; padding:16px 18px;">
+          <div style="font-family:'Newsreader',serif; font-size:27px; font-weight:600; color:#5E7355; line-height:1;">96<span style="font-size:16px;">%</span></div>
+          <div style="font-size:12.5px; color:#8A887E; margin-top:5px;">用例体检通过率</div>
+        </div>
+      </div>
+
+      <div style="margin-top:36px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
+          <h2 style="font-family:'Newsreader',serif; font-weight:500; font-size:22px; margin:0; color:#22211F;">最近转换记录</h2>
+          <span style="font-size:12.5px; color:#9A988D;">本地缓存 · 点击 <span style="color:#A4623F;">预览</span> 查看用例</span>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(43,42,39,0.04);">
+          <div style="display:grid; grid-template-columns:1fr 110px 176px; gap:12px; padding:12px 22px; border-bottom:1px solid #EDE9DF; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase; color:#A4A299;">
+            <div>文件名</div><div>时间</div><div style="text-align:right;">操作</div>
+          </div>
+          <sc-for list="{{ records }}" as="rec" hint-placeholder-count="4">
+            <div style="display:grid; grid-template-columns:1fr 110px 176px; gap:12px; padding:14px 22px; border-bottom:1px solid #F1EDE3; align-items:center;" style-hover="background:#FBFAF6;">
+              <div style="display:flex; align-items:center; gap:11px; min-width:0;">
+                <span style="flex:none; width:30px; height:30px; border-radius:8px; background:{{ rec.iconBg }}; color:{{ rec.iconFg }}; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;">{{ rec.kind }}</span>
+                <span style="font-size:14px; color:#33322E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ rec.name }}</span>
+              </div>
+              <div style="font-size:13px; color:#9A988D; white-space:nowrap;">{{ rec.time }}</div>
+              <div style="display:flex; align-items:center; justify-content:flex-end; gap:2px;">
+                <span title="下载 XMind" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#8A887E; cursor:pointer;" style-hover="background:#F3ECE1; color:#A4623F;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 12l5 5 5-5"></path><path d="M5 21h14"></path></svg></span>
+                <span title="导出 CSV" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#8A887E; cursor:pointer;" style-hover="background:#EBF0E6; color:#5E7355;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M9 4v16"></path></svg></span>
+                <span title="导出 XML" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#8A887E; cursor:pointer;" style-hover="background:#F4EEDF; color:#A98231;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18l-4-6 4-6"></path><path d="M16 6l4 6-4 6"></path></svg></span>
+                <span title="预览" onClick="{{ goPreview }}" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#A4623F; cursor:pointer; background:#F7EFE9;" style-hover="background:#F3ECE1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+                <span title="删除" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#B6B3A8; cursor:pointer;" style-hover="background:#F6E7E2; color:#B5503A;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg></span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <footer style="margin-top:42px; text-align:center; font-size:12.5px; color:#A4A299;">
+        Powered by <span style="color:#8A887E;">XMind2Cases</span> · 本地优先的测试用例转换工具
+      </footer>
+    </main>
+  </div>
+  </sc-if>
+
+  <!-- ============ PREVIEW SCREEN ============ -->
+  <sc-if value="{{ isPreview }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="用例预览">
+    <main style="max-width:1320px; margin:0 auto; padding:26px 32px 70px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:14px; min-width:0;">
+          <span onClick="{{ goConvert }}" style="flex:none; width:36px; height:36px; border-radius:10px; border:1px solid #E0DBCE; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#6B6A63; cursor:pointer;" style-hover="background:#F7F4EC; color:#2B2A27;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+          </span>
+          <div style="min-width:0;">
+            <h1 style="font-family:'Newsreader',serif; font-weight:500; font-size:23px; margin:0; color:#22211F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">cases_20260623_164614.xmind</h1>
+            <p style="font-size:12.5px; color:#9A988D; margin:2px 0 0;">用例预览 · 模版：{{ tplName }}</p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+          <button onClick="{{ toggleEdit }}" style="border:{{ editBorder }}; background:{{ editBg }}; color:{{ editFg }}; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>{{ editLabel }}
+          </button>
+          <button onClick="{{ goDiff }}" style="border:1px solid #E0DBCE; background:#FFFFFF; color:#5A584F; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;" style-hover="background:#F7F4EC;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M18 9v3a3 3 0 0 1-3 3H9"></path></svg>版本对比
+          </button>
+          <button style="border:1px solid #D3DDC9; background:#EFF3E9; color:#4F6248; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;" style-hover="background:#E7EEDD;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M9 4v16"></path></svg>导出 CSV
+          </button>
+          <button style="border:1px solid #E6D9B6; background:#F6EFDD; color:#9A7A2E; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;" style-hover="background:#F1E7CE;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18l-4-6 4-6"></path><path d="M16 6l4 6-4 6"></path></svg>导出 XML
+          </button>
+          <button onClick="{{ openTemplate }}" style="border:none; background:#262624; color:#F5F2EC; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 15px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;" style-hover="background:#3A3835;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>模版设置
+          </button>
+        </div>
+      </div>
+
+      <!-- 用例体检 -->
+      <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:16px; padding:16px 22px; margin-bottom:16px; display:flex; align-items:center; gap:24px; flex-wrap:wrap; box-shadow:0 1px 3px rgba(43,42,39,0.04);">
+        <div style="display:flex; align-items:center; gap:11px;">
+          <div style="width:38px; height:38px; border-radius:11px; background:#EFF3E9; display:flex; align-items:center; justify-content:center;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5E7355" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="M22 4L12 14.01l-3-3"></path></svg>
+          </div>
+          <div><div style="font-size:14px; font-weight:500; color:#2B2A27;">用例体检</div><div style="font-size:12px; color:#9A988D;">导出前自动检查质量</div></div>
+        </div>
+        <span style="width:1px; height:32px; background:#EAE5DA;"></span>
+        <div style="display:flex; align-items:baseline; gap:7px;"><span style="font-family:'Newsreader',serif; font-size:21px; font-weight:600; color:#22211F;">{{ caseCount }}</span><span style="font-size:12.5px; color:#8A887E;">条用例</span></div>
+        <div style="display:flex; align-items:center; gap:7px; font-size:13px; color:#9A7A2E; background:#F6EFDD; border:1px solid #E6D9B6; padding:6px 12px; border-radius:9px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>{{ emptyCount }} 处待补充
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; margin-left:auto;">
+          <span style="font-size:12.5px; color:#9A988D;">优先级</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#5A584F;"><span style="width:9px; height:9px; border-radius:3px; background:#B5503A;"></span>P0 · {{ p0 }}</span>
+            <span style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#5A584F;"><span style="width:9px; height:9px; border-radius:3px; background:#C9A24A;"></span>P1 · {{ p1 }}</span>
+            <span style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#5A584F;"><span style="width:9px; height:9px; border-radius:3px; background:#7E9166;"></span>P2 · {{ p2 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ editMode }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12.5px; color:#A4623F; background:#FBF4EE; border:1px solid #EBD8CC; border-radius:10px; padding:9px 14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+          编辑模式：拖动表头 <b style="margin:0 2px;">⠿</b> 可调整列顺序，点击 ✎ 改列、＋ 加列；单元格可直接修改，步骤每行一条。
+        </div>
+      </sc-if>
+
+      <!-- table -->
+      <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:18px; overflow:hidden; box-shadow:0 1px 3px rgba(43,42,39,0.05);">
+        <div class="x-scroll" style="overflow-x:auto;">
+          <table style="width:100%; min-width:1240px; border-collapse:collapse; font-size:13.5px;">
+            <thead>
+              <tr style="background:{{ headerColor }};">
+                <sc-for list="{{ columns }}" as="col" hint-placeholder-count="6">
+                  <th draggable="true" onDragStart="{{ col.onDragStart }}" onDragOver="{{ allowDrop }}" onDrop="{{ col.onDrop }}" style="text-align:left; padding:13px 16px; border-bottom:1px solid #EAE5DA; width:{{ col.width }}; vertical-align:middle;">
+                    <div style="display:flex; align-items:center; gap:7px;">
+                      <span style="color:#C7C3B6; cursor:grab; display:flex;" title="拖动调整列顺序"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg></span>
+                      <span style="font-size:11.5px; font-weight:500; letter-spacing:0.04em; color:#7A7868; text-transform:uppercase; white-space:nowrap;">{{ col.name }}</span>
+                      <sc-if value="{{ col.editable }}" hint-placeholder-val="{{ true }}">
+                        <span onClick="{{ col.onEdit }}" title="编辑列" style="color:#C7C3B6; cursor:pointer; display:flex;" style-hover="color:#A4623F;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg></span>
+                        <span onClick="{{ onAddCol }}" title="新增列" style="color:#C7C3B6; cursor:pointer; display:flex;" style-hover="color:#5E7355;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span>
+                      </sc-if>
+                    </div>
+                  </th>
+                </sc-for>
+                <sc-if value="{{ editMode }}" hint-placeholder-val="{{ false }}">
+                  <th style="width:60px; padding:13px 16px; border-bottom:1px solid #EAE5DA;"><span style="font-size:11.5px; font-weight:500; color:#7A7868;">操作</span></th>
+                </sc-if>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ grid }}" as="row" hint-placeholder-count="6">
+                <tr style="border-bottom:1px solid #F1EDE3; vertical-align:top;" style-hover="background:#FBFAF6;">
+                  <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="6">
+                    <td style="padding:16px; vertical-align:top; line-height:1.5;">
+                      <sc-if value="{{ cell.isIndex }}" hint-placeholder-val="{{ false }}"><span style="color:#B6B3A8; font-family:'Newsreader',serif; font-size:16px;">{{ cell.seq }}</span></sc-if>
+                      <sc-if value="{{ cell.showBadge }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; font-size:11.5px; font-weight:700; color:{{ cell.prFg }}; background:{{ cell.prBg }}; padding:3px 9px; border-radius:7px;">{{ cell.priority }}</span></sc-if>
+                      <sc-if value="{{ cell.showSelect }}" hint-placeholder-val="{{ false }}">
+                        <select value="{{ cell.priority }}" onChange="{{ cell.onPr }}" class="modal-input" style="border:1px solid #E0DBCE; background:#FFF; border-radius:8px; padding:5px 7px; font-size:13px; color:#33322E; cursor:pointer;">
+                          <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
+                        </select>
+                      </sc-if>
+                      <sc-if value="{{ cell.showList }}" hint-placeholder-val="{{ false }}">
+                        <ol style="margin:0; padding:0; list-style:none;">
+                          <sc-for list="{{ cell.steps }}" as="step" hint-placeholder-count="3">
+                            <li style="position:relative; padding-left:26px; margin-bottom:6px; color:#5A584F; line-height:1.5;">
+                              <span style="position:absolute; left:0; top:1px; width:18px; height:18px; border-radius:6px; background:#F3ECE1; color:#A4623F; font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center;">{{ step.n }}</span>{{ step.text }}
+                            </li>
+                          </sc-for>
+                        </ol>
+                      </sc-if>
+                      <sc-if value="{{ cell.showStepsEdit }}" hint-placeholder-val="{{ false }}">
+                        <textarea class="cell-edit" defaultValue="{{ cell.stepsText }}" onBlur="{{ cell.onSteps }}" rows="4" style="width:100%; min-width:220px; border:1px solid #E0DBCE; border-radius:8px; padding:8px 10px; font-size:13px; color:#33322E; resize:vertical; line-height:1.5;"></textarea>
+                      </sc-if>
+                      <sc-if value="{{ cell.showText }}" hint-placeholder-val="{{ false }}"><span style="color:#4A4843;">{{ cell.value }}</span></sc-if>
+                      <sc-if value="{{ cell.showEmpty }}" hint-placeholder-val="{{ false }}">
+                        <span style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#9A7A2E; background:#F6EFDD; border:1px dashed #E2CF94; padding:4px 10px; border-radius:8px;">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>待补充
+                        </span>
+                      </sc-if>
+                      <sc-if value="{{ cell.showTextEdit }}" hint-placeholder-val="{{ false }}">
+                        <textarea class="cell-edit" defaultValue="{{ cell.value }}" onBlur="{{ cell.onCommit }}" rows="3" style="width:100%; min-width:160px; border:1px solid #E0DBCE; border-radius:8px; padding:8px 10px; font-size:13px; color:#33322E; resize:vertical; line-height:1.5;"></textarea>
+                      </sc-if>
+                    </td>
+                  </sc-for>
+                  <sc-if value="{{ editMode }}" hint-placeholder-val="{{ false }}">
+                    <td style="padding:16px; vertical-align:top;">
+                      <span onClick="{{ row.onDelete }}" title="删除该行" style="width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:#B6B3A8; cursor:pointer;" style-hover="background:#F6E7E2; color:#B5503A;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg></span>
+                    </td>
+                  </sc-if>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <sc-if value="{{ editMode }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:12px 18px; border-top:1px solid #EDE9DF;">
+            <button onClick="{{ addRow }}" style="border:1px dashed #D8CFBF; background:#FBFAF6; color:#A4623F; font-family:inherit; font-size:13px; font-weight:500; padding:9px 16px; border-radius:9px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;" style-hover="border-color:#C96442; background:#FBF4EE;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>新增用例行
+            </button>
+          </div>
+        </sc-if>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 22px; border-top:1px solid #EDE9DF; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#8A887E;">
+            <span>每页</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; background:#FFFFFF; border:1px solid #E0DBCE; border-radius:8px; padding:5px 10px; color:#4A4843; cursor:pointer;">20<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span>
+            <span>条 · 共 {{ caseCount }} 条</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="width:30px; height:30px; border-radius:8px; border:1px solid #E4E0D5; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#C2BFB4;">‹</span>
+            <span style="min-width:30px; height:30px; padding:0 6px; border-radius:8px; background:#262624; color:#F5F2EC; display:flex; align-items:center; justify-content:center; font-size:13px;">1</span>
+            <span style="width:30px; height:30px; border-radius:8px; border:1px solid #E4E0D5; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#C2BFB4;">›</span>
+          </div>
+        </div>
+      </div>
+      <footer style="margin-top:34px; text-align:center; font-size:12.5px; color:#A4A299;">Powered by <span style="color:#8A887E;">XMind2Cases</span> · 本地优先的测试用例转换工具</footer>
+    </main>
+  </div>
+  </sc-if>
+
+  <!-- ============ DIFF SCREEN ============ -->
+  <sc-if value="{{ isDiff }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="版本对比">
+    <main style="max-width:980px; margin:0 auto; padding:26px 32px 70px;">
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:22px;">
+        <span onClick="{{ goPreview }}" style="flex:none; width:36px; height:36px; border-radius:10px; border:1px solid #E0DBCE; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#6B6A63; cursor:pointer;" style-hover="background:#F7F4EC; color:#2B2A27;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+        </span>
+        <div>
+          <h1 style="font-family:'Newsreader',serif; font-weight:500; font-size:23px; margin:0; color:#22211F;">版本对比</h1>
+          <p style="font-size:12.5px; color:#9A988D; margin:2px 0 0;">对比两次转换结果，定位新增、删除与修改的用例</p>
+        </div>
+      </div>
+
+      <!-- version selectors -->
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:240px; background:#FFFFFF; border:1px solid #E7E3D8; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:10px;">
+          <span style="font-size:11px; font-weight:700; color:#8A887E; background:#F0EDE4; padding:3px 8px; border-radius:6px;">基线 A</span>
+          <div><div style="font-size:13.5px; color:#33322E;">cases_v1.xmind</div><div style="font-size:11.5px; color:#A4A299;">6 月 11 日 · 7 条用例</div></div>
+        </div>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A38E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        <div style="flex:1; min-width:240px; background:#FFFFFF; border:1px solid #E7E3D8; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:10px;">
+          <span style="font-size:11px; font-weight:700; color:#A4623F; background:#F3ECE1; padding:3px 8px; border-radius:6px;">当前 B</span>
+          <div><div style="font-size:13.5px; color:#33322E;">cases_20260623.xmind</div><div style="font-size:11.5px; color:#A4A299;">6 月 23 日 · 9 条用例</div></div>
+        </div>
+      </div>
+
+      <!-- summary -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:13px; padding:15px 16px;"><div style="font-family:'Newsreader',serif; font-size:24px; font-weight:600; color:#5E7355;">+{{ dAdded }}</div><div style="font-size:12px; color:#8A887E; margin-top:3px;">新增</div></div>
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:13px; padding:15px 16px;"><div style="font-family:'Newsreader',serif; font-size:24px; font-weight:600; color:#B5503A;">−{{ dRemoved }}</div><div style="font-size:12px; color:#8A887E; margin-top:3px;">删除</div></div>
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:13px; padding:15px 16px;"><div style="font-family:'Newsreader',serif; font-size:24px; font-weight:600; color:#9A7A2E;">{{ dModified }}</div><div style="font-size:12px; color:#8A887E; margin-top:3px;">修改</div></div>
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:13px; padding:15px 16px;"><div style="font-family:'Newsreader',serif; font-size:24px; font-weight:600; color:#9A988D;">{{ dUnchanged }}</div><div style="font-size:12px; color:#8A887E; margin-top:3px;">未变</div></div>
+      </div>
+
+      <!-- diff list -->
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ diffItems }}" as="d" hint-placeholder-count="6">
+          <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-left:3px solid {{ d.bar }}; border-radius:12px; padding:15px 18px; box-shadow:0 1px 2px rgba(43,42,39,0.03);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:11px; font-weight:700; color:{{ d.chipFg }}; background:{{ d.chipBg }}; padding:3px 9px; border-radius:6px;">{{ d.tag }}</span>
+              <span style="font-size:14px; color:#2B2A27; font-weight:500;">{{ d.title }}</span>
+            </div>
+            <sc-if value="{{ d.showChange }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:11px; display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:11.5px; color:#9A988D; background:#F4F1E8; padding:2px 8px; border-radius:6px; margin-top:2px;">{{ d.field }}</span>
+                <span style="font-size:13px; color:#A36154; text-decoration:line-through; flex:1; min-width:120px;">{{ d.from }}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A38E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+                <span style="font-size:13px; color:#4F6248; flex:1; min-width:120px;">{{ d.to }}</span>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <footer style="margin-top:34px; text-align:center; font-size:12.5px; color:#A4A299;">Powered by <span style="color:#8A887E;">XMind2Cases</span> · 本地优先的测试用例转换工具</footer>
+    </main>
+  </div>
+  </sc-if>
+
+  <!-- ============ COLUMN MODAL ============ -->
+  <sc-if value="{{ showColModal }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed; inset:0; background:rgba(43,42,39,0.32); display:flex; align-items:center; justify-content:center; z-index:50; padding:24px;" onClick="{{ closeModal }}">
+    <div style="background:#FFFFFF; border-radius:18px; padding:28px; width:440px; max-width:100%; box-shadow:0 20px 50px rgba(43,42,39,0.25);" onClick="{{ stop }}">
+      <h2 style="font-family:'Newsreader',serif; font-weight:600; font-size:21px; margin:0 0 6px; color:#22211F;">{{ colModalTitle }}</h2>
+      <div style="height:1px; background:#EDE9DF; margin:0 0 20px;"></div>
+      <label style="display:block; font-size:13px; font-weight:500; color:#4A4843; margin-bottom:7px;">列名称</label>
+      <input class="modal-input" value="{{ formName }}" onChange="{{ onFormName }}" placeholder="{{ namePlaceholder }}" style="width:100%; border:1px solid #E0DBCE; border-radius:10px; padding:11px 13px; font-size:14px; color:#2B2A27; margin-bottom:18px;"/>
+      <label style="display:block; font-size:13px; font-weight:500; color:#4A4843; margin-bottom:7px;">默认值</label>
+      <input class="modal-input" value="{{ formDef }}" onChange="{{ onFormDef }}" placeholder="自定义列可设置，为空则留空" style="width:100%; border:1px solid #E0DBCE; border-radius:10px; padding:11px 13px; font-size:14px; color:#2B2A27; margin-bottom:20px; background:#FBFAF6;"/>
+      <div onClick="{{ toggleRich }}" style="display:flex; gap:12px; cursor:pointer; margin-bottom:16px;">
+        <sc-if value="{{ formRich }}" hint-placeholder-val="{{ false }}"><span style="flex:none; width:20px; height:20px; border-radius:6px; background:#C96442; display:flex; align-items:center; justify-content:center; margin-top:1px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span></sc-if>
+        <sc-if value="{{ notRich }}" hint-placeholder-val="{{ true }}"><span style="flex:none; width:20px; height:20px; border-radius:6px; border:1.5px solid #D3CDBE; margin-top:1px;"></span></sc-if>
+        <div><div style="font-size:14px; font-weight:500; color:#33322E;">富文本换行处理</div><div style="font-size:12.5px; color:#8A887E; line-height:1.5; margin-top:2px;">导出时将换行符转为 HTML 换行标签，便于在富文本编辑器中正确显示多行内容</div></div>
+      </div>
+      <div onClick="{{ toggleEmpty }}" style="display:flex; gap:12px; cursor:pointer; margin-bottom:24px;">
+        <sc-if value="{{ formEmpty }}" hint-placeholder-val="{{ false }}"><span style="flex:none; width:20px; height:20px; border-radius:6px; background:#C96442; display:flex; align-items:center; justify-content:center; margin-top:1px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span></sc-if>
+        <sc-if value="{{ notEmpty }}" hint-placeholder-val="{{ true }}"><span style="flex:none; width:20px; height:20px; border-radius:6px; border:1.5px solid #D3CDBE; margin-top:1px;"></span></sc-if>
+        <div><div style="font-size:14px; font-weight:500; color:#33322E;">空值校验处理</div><div style="font-size:12.5px; color:#8A887E; line-height:1.5; margin-top:2px;">当该列存在空值时显示提醒，并计入用例体检的「待补充」统计</div></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button onClick="{{ closeModal }}" style="border:1px solid #E0DBCE; background:#FFFFFF; color:#5A584F; font-family:inherit; font-size:14px; font-weight:500; padding:10px 20px; border-radius:10px; cursor:pointer;" style-hover="background:#F7F4EC;">取消</button>
+        <button onClick="{{ confirmCol }}" style="border:none; background:#262624; color:#F5F2EC; font-family:inherit; font-size:14px; font-weight:500; padding:10px 22px; border-radius:10px; cursor:pointer;" style-hover="background:#3A3835;">确定</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ TEMPLATE MODAL ============ -->
+  <sc-if value="{{ showTemplate }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed; inset:0; background:rgba(43,42,39,0.32); display:flex; align-items:center; justify-content:center; z-index:50; padding:24px;" onClick="{{ closeModal }}">
+    <div style="background:#FFFFFF; border-radius:18px; padding:28px; width:480px; max-width:100%; max-height:88vh; overflow:auto; box-shadow:0 20px 50px rgba(43,42,39,0.25);" onClick="{{ stop }}">
+      <h2 style="font-family:'Newsreader',serif; font-weight:600; font-size:21px; margin:0 0 6px; color:#22211F;">编辑模版</h2>
+      <div style="height:1px; background:#EDE9DF; margin:0 0 20px;"></div>
+
+      <label style="display:block; font-size:13px; font-weight:500; color:#4A4843; margin-bottom:7px;">模版名称</label>
+      <input class="modal-input" value="{{ tplDraftName }}" onChange="{{ onTplName }}" placeholder="数栈" style="width:100%; border:1px solid #E0DBCE; border-radius:10px; padding:11px 13px; font-size:14px; color:#2B2A27; margin-bottom:20px;"/>
+
+      <label style="display:block; font-size:13px; font-weight:500; color:#4A4843; margin-bottom:9px;">标题行字段</label>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+        <sc-for list="{{ tplFields }}" as="f" hint-placeholder-count="3">
+          <div style="border:1px solid #EDE9DF; border-radius:11px; overflow:hidden;">
+            <div onClick="{{ f.onToggle }}" style="display:flex; align-items:center; gap:9px; padding:11px 14px; background:#FBFAF6; cursor:pointer;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A4A299" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate({{ f.rot }}); transition:transform .15s;"><path d="M9 6l6 6-6 6"></path></svg>
+              <span style="flex:1; font-size:14px; font-weight:500; color:#33322E;">{{ f.name }}</span>
+              <span style="font-size:11px; color:#A4A299; background:#F0EDE4; padding:2px 8px; border-radius:6px;">{{ f.typeLabel }}</span>
+              <sc-if value="{{ f.removable }}" hint-placeholder-val="{{ true }}"><span onClick="{{ f.onDelete }}" title="删除字段" style="color:#C2BFB4; display:flex; cursor:pointer;" style-hover="color:#B5503A;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg></span></sc-if>
+            </div>
+            <sc-if value="{{ f.expanded }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:14px; background:#FFFFFF; border-top:1px solid #F1EDE3;">
+                <label style="display:block; font-size:12px; color:#8A887E; margin-bottom:6px;">字段名</label>
+                <input class="modal-input" value="{{ f.name }}" onChange="{{ f.onName }}" style="width:100%; border:1px solid #E0DBCE; border-radius:9px; padding:9px 12px; font-size:13.5px; color:#2B2A27; margin-bottom:12px;"/>
+                <label style="display:block; font-size:12px; color:#8A887E; margin-bottom:6px;">默认值</label>
+                <input class="modal-input" value="{{ f.default }}" onChange="{{ f.onDefault }}" placeholder="自定义列可设置，为空则留空" style="width:70%; border:1px solid #E0DBCE; border-radius:9px; padding:9px 12px; font-size:13.5px; color:#2B2A27; background:#FBFAF6;"/>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:22px;">
+        <button onClick="{{ addField }}" style="border:1px solid #D3DDC9; background:#EFF3E9; color:#4F6248; font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:9px; cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="background:#E7EEDD;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>新增字段</button>
+        <button onClick="{{ resetTemplate }}" style="border:1px solid #E0DBCE; background:#FFFFFF; color:#6B6A63; font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:9px; cursor:pointer;" style-hover="background:#F7F4EC;">恢复默认</button>
+      </div>
+
+      <label style="display:block; font-size:13px; font-weight:500; color:#4A4843; margin-bottom:9px;">标题行颜色</label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+        <sc-for list="{{ swatches }}" as="sw" hint-placeholder-count="8">
+          <span onClick="{{ sw.onPick }}" style="width:30px; height:30px; border-radius:8px; background:{{ sw.color }}; border:{{ sw.ring }}; cursor:pointer;"></span>
+        </sc-for>
+      </div>
+      <input class="modal-input" value="{{ tplDraftColor }}" onChange="{{ onTplHex }}" style="width:140px; border:1px solid #E0DBCE; border-radius:9px; padding:8px 12px; font-size:13.5px; color:#2B2A27; font-family:monospace; margin-bottom:24px;"/>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button onClick="{{ closeModal }}" style="border:1px solid #E0DBCE; background:#FFFFFF; color:#5A584F; font-family:inherit; font-size:14px; font-weight:500; padding:10px 20px; border-radius:10px; cursor:pointer;" style-hover="background:#F7F4EC;">取消</button>
+        <button onClick="{{ saveTemplate }}" style="border:none; background:#262624; color:#F5F2EC; font-family:inherit; font-size:14px; font-weight:500; padding:10px 22px; border-radius:10px; cursor:pointer;" style-hover="background:#3A3835;">保存</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:920},&quot;initialScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;convert&quot;,&quot;preview&quot;,&quot;diff&quot;],&quot;default&quot;:&quot;convert&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'convert', dir: 'x2c', mode: 'single', editMode: false,
+    modal: null, form: { name: '', def: '', rich: false, empty: false },
+    tpl: { name: '数栈', headerColor: '#FAF8F2' },
+    tplDraft: { name: '数栈', color: '#FAF8F2' },
+    expandedField: 'title',
+    records: [
+      { name: 'cases_20260623_164614.xmind', time: '17 小时前', kind: 'XM', iconBg: '#F3ECE1', iconFg: '#A4623F' },
+      { name: 'cases.xmind', time: '17 小时前', kind: 'XM', iconBg: '#F3ECE1', iconFg: '#A4623F' },
+      { name: '数据资产_STD-用例_20260611.csv', time: '一周前', kind: 'CSV', iconBg: '#EBF0E6', iconFg: '#5E7355' },
+      { name: '数据质量_回归_v2.xmind', time: '一周前', kind: 'XM', iconBg: '#F3ECE1', iconFg: '#A4623F' },
+      { name: '禅道导出_权限模块.csv', time: '两周前', kind: 'CSV', iconBg: '#EBF0E6', iconFg: '#5E7355' },
+    ],
+    columns: [
+      { id: 'seq', name: '序号', type: 'index', width: '56px' },
+      { id: 'priority', name: '优先级', type: 'priority', width: '84px' },
+      { id: 'title', name: '用例标题', key: 'title', type: 'text', width: '260px', emptyCheck: true },
+      { id: 'precondition', name: '前置条件', key: 'precondition', type: 'text', width: '240px' },
+      { id: 'steps', name: '步骤', type: 'steps', width: 'auto' },
+      { id: 'expected', name: '预期结果', key: 'expected', type: 'text', width: '220px', emptyCheck: true },
+    ],
+    rows: [
+      { id: 1, priority: 'P0', title: 'json 格式校验管理 · 勾选多行导出，内容与勾选项一致', precondition: 'json 校验列表存在一层级 key：exportA、exportB、singleExport', steps: ['进入【数据质量 → 通用配置 → json 格式校验管理】', '勾选 exportA、exportB 两行', '点击顶部【导出】，等待文件下载完成', '打开导出文件核对数据行'], expected: '导出文件仅含 exportA、exportB 两条，字段完整无缺失' },
+      { id: 2, priority: 'P1', title: 'json 格式校验管理 · 未勾选时导出全部记录', precondition: 'json 校验列表存在多条 key 记录', steps: ['进入 json 格式校验管理', '不勾选任何行直接点击【导出】', '核对导出文件与列表全量记录'], expected: '导出文件包含列表全部记录' },
+      { id: 3, priority: 'P1', title: 'json 格式校验管理 · 仅勾选单行的导出结果', precondition: 'json 校验列表存在一层级 key：singleExport', steps: ['进入 json 格式校验管理', '仅勾选 singleExport 一行', '点击【导出】等待下载', '核对记录条数为 1'], expected: '导出文件仅含 singleExport 一条记录' },
+      { id: 4, priority: 'P1', title: 'json 格式校验管理 · 表头全选后导出全部', precondition: 'json 校验列表存在至少 2 条一层级 key', steps: ['进入 json 格式校验管理', '点击表头全选复选框', '点击【导出】等待下载', '与列表数据逐条核对'], expected: '导出文件与列表全量数据一致' },
+      { id: 5, priority: 'P1', title: 'json 格式校验管理 · 取消全选后的导出行为', precondition: 'json 校验列表存在多条记录且处于全选状态', steps: ['进入 json 格式校验管理', '点击全选后再次取消全选', '点击【导出】', '核对结果'], expected: '无勾选项时视为导出全部记录' },
+      { id: 6, priority: 'P2', title: 'json 格式校验管理 · 跨页勾选保持选中状态', precondition: 'json 校验列表数据超过 1 页（每页 10 条）', steps: ['第 1 页勾选若干行', '切换到第 2 页继续勾选', '返回第 1 页确认勾选保留', '点击【导出】'], expected: '导出包含两页全部勾选项' },
+      { id: 7, priority: 'P2', title: 'json 格式校验管理 · 列表为空时导出提示', precondition: 'json 校验列表无任何记录', steps: ['进入空列表状态', '点击顶部【导出】按钮', '观察系统提示'], expected: '' },
+      { id: 8, priority: 'P2', title: 'json 格式校验管理 · 导出文件命名规范', precondition: 'json 校验列表存在记录', steps: ['勾选任意一行', '点击【导出】', '查看下载文件名'], expected: '文件名符合 模块_类型_时间戳 规范' },
+      { id: 9, priority: 'P2', title: 'json 格式校验管理 · 大数据量导出性能', precondition: 'json 校验列表存在 1000 条以上记录', steps: ['表头全选', '点击【导出】并计时', '核对导出条数'], expected: '' },
+    ],
+    queue: [
+      { id: 1, name: '登录模块_回归.xmind', dir: 'XMind → 用例', status: 'done', meta: '生成 24 条用例' },
+      { id: 2, name: '支付流程_v3.xmind', dir: 'XMind → 用例', status: 'running', meta: '转换中…' },
+      { id: 3, name: '数据质量_通用配置.xmind', dir: 'XMind → 用例', status: 'queued', meta: '排队中' },
+      { id: 4, name: '禅道导出_权限.csv', dir: 'CSV → XMind', status: 'error', meta: '字段缺失，已跳过' },
+    ],
+  };
+
+  _dragFrom = -1;
+
+  componentDidMount() {
+    const s = this.props.initialScreen;
+    if (s && s !== this.state.screen) this.setState({ screen: s });
+  }
+
+  setCell(id, key, val) { this.setState(s => ({ rows: s.rows.map(r => r.id === id ? { ...r, [key]: val } : r) })); }
+  setSteps(id, text) { this.setState(s => ({ rows: s.rows.map(r => r.id === id ? { ...r, steps: text.split('\n') } : r) })); }
+  addRow() { this.setState(s => ({ rows: [...s.rows, { id: Date.now(), priority: 'P2', title: '', precondition: '', steps: [''], expected: '' }] })); }
+  deleteRow(id) { this.setState(s => ({ rows: s.rows.filter(r => r.id !== id) })); }
+
+  moveCol(to) {
+    const from = this._dragFrom;
+    if (from < 0 || from === to) return;
+    this.setState(s => {
+      const cols = [...s.columns];
+      const [m] = cols.splice(from, 1);
+      cols.splice(to, 0, m);
+      return { columns: cols };
+    });
+    this._dragFrom = -1;
+  }
+
+  openEditCol(id) {
+    const c = this.state.columns.find(x => x.id === id);
+    this.setState({ modal: 'editCol', editingColId: id, form: { name: c.name, def: c.default || '', rich: !!c.richText, empty: !!c.emptyCheck } });
+  }
+  openAddCol() { this.setState({ modal: 'addCol', editingColId: null, form: { name: '', def: '', rich: false, empty: false } }); }
+  closeModal() { this.setState({ modal: null }); }
+  confirmCol() {
+    const f = this.state.form;
+    if (this.state.modal === 'editCol') {
+      const id = this.state.editingColId;
+      this.setState(s => ({ columns: s.columns.map(c => c.id === id ? { ...c, name: f.name || c.name, default: f.def, richText: f.rich, emptyCheck: f.empty } : c), modal: null }));
+    } else {
+      const key = 'k' + Date.now();
+      const col = { id: key, name: f.name || '未命名字段', key, type: 'text', width: '180px', default: f.def, richText: f.rich, emptyCheck: f.empty };
+      this.setState(s => ({ columns: [...s.columns, col], modal: null }));
+    }
+  }
+
+  defaultColumns() {
+    return [
+      { id: 'seq', name: '序号', type: 'index', width: '56px' },
+      { id: 'priority', name: '优先级', type: 'priority', width: '84px' },
+      { id: 'title', name: '用例标题', key: 'title', type: 'text', width: '260px', emptyCheck: true },
+      { id: 'precondition', name: '前置条件', key: 'precondition', type: 'text', width: '240px' },
+      { id: 'steps', name: '步骤', type: 'steps', width: 'auto' },
+      { id: 'expected', name: '预期结果', key: 'expected', type: 'text', width: '220px', emptyCheck: true },
+    ];
+  }
+  openTemplate() { this.setState(s => ({ modal: 'template', tplDraft: { name: s.tpl.name, color: s.tpl.headerColor } })); }
+  saveTemplate() { this.setState(s => ({ tpl: { name: s.tplDraft.name || '未命名模版', headerColor: s.tplDraft.color }, modal: null })); }
+  resetTemplate() { this.setState({ columns: this.defaultColumns(), expandedField: 'title' }); }
+  renameField(id, name) { this.setState(s => ({ columns: s.columns.map(c => c.id === id ? { ...c, name } : c) })); }
+  setFieldDefault(id, def) { this.setState(s => ({ columns: s.columns.map(c => c.id === id ? { ...c, default: def } : c) })); }
+  deleteField(id) { this.setState(s => ({ columns: s.columns.filter(c => c.id !== id) })); }
+  toggleField(id) { this.setState(s => ({ expandedField: s.expandedField === id ? null : id })); }
+  addField() {
+    const key = 'k' + Date.now();
+    const col = { id: key, name: '未命名字段', key, type: 'text', width: '180px', default: '' };
+    this.setState(s => ({ columns: [...s.columns, col], expandedField: key }));
+  }
+
+  convertAll() {
+    const q = this.state.queue.map(i => ({ ...i }));
+    const fi = q.findIndex(i => i.status === 'queued');
+    if (fi >= 0) { q[fi].status = 'running'; q[fi].meta = '转换中…'; }
+    this.setState({ queue: q });
+    setTimeout(() => this.runQueue(), 800);
+  }
+  runQueue() {
+    const q = this.state.queue.map(i => ({ ...i }));
+    const ri = q.findIndex(i => i.status === 'running');
+    if (ri >= 0) { q[ri].status = 'done'; q[ri].meta = '已完成'; }
+    const ni = q.findIndex(i => i.status === 'queued');
+    if (ni >= 0) { q[ni].status = 'running'; q[ni].meta = '转换中…'; }
+    this.setState({ queue: q });
+    if (ni >= 0) setTimeout(() => this.runQueue(), 800);
+  }
+
+  renderVals() {
+    const { dir, mode, editMode, screen, columns, rows } = this.state;
+    const isX2C = dir === 'x2c';
+    const single = mode === 'single';
+    const PR = { P0: { prFg: '#B5503A', prBg: '#F6E7E2' }, P1: { prFg: '#9A7A2E', prBg: '#F6EFDD' }, P2: { prFg: '#5E7355', prBg: '#EBF0E6' }, P3: { prFg: '#7A7868', prBg: '#F0EDE4' } };
+
+    const grid = rows.map((r, ri) => ({
+      id: r.id,
+      onDelete: () => this.deleteRow(r.id),
+      cells: columns.map(col => {
+        const base = { key: col.id + '-' + r.id };
+        if (col.type === 'index') return { ...base, isIndex: true, seq: ri + 1 };
+        if (col.type === 'priority') { const m = PR[r.priority] || PR.P2; return { ...base, showBadge: !editMode, showSelect: editMode, priority: r.priority, prFg: m.prFg, prBg: m.prBg, onPr: (e) => this.setCell(r.id, 'priority', e.target.value) }; }
+        if (col.type === 'steps') return { ...base, showList: !editMode, showStepsEdit: editMode, steps: (r.steps || []).map((t, i) => ({ n: i + 1, text: t })), stepsText: (r.steps || []).join('\n'), onSteps: (e) => this.setSteps(r.id, e.target.value) };
+        const val = (r[col.key] != null && r[col.key] !== '') ? r[col.key] : (col.default || '');
+        const empty = !String(val).trim();
+        return { ...base, showText: !editMode && !(col.emptyCheck && empty), showEmpty: !editMode && col.emptyCheck && empty, showTextEdit: editMode, value: val, onCommit: (e) => this.setCell(r.id, col.key, e.target.value) };
+      }),
+    }));
+
+    const colVals = columns.map((col, idx) => ({
+      ...col,
+      editable: col.type !== 'index',
+      onEdit: () => this.openEditCol(col.id),
+      onDragStart: () => { this._dragFrom = idx; },
+      onDrop: (e) => { e.preventDefault(); this.moveCol(idx); },
+    }));
+
+    let emptyCount = 0;
+    rows.forEach(r => columns.forEach(c => { if (c.emptyCheck && c.type === 'text' && !String((r[c.key] ?? c.default ?? '')).trim()) emptyCount++; }));
+    const p0 = rows.filter(r => r.priority === 'P0').length;
+    const p1 = rows.filter(r => r.priority === 'P1').length;
+    const p2 = rows.filter(r => r.priority === 'P2').length;
+
+    const ST = {
+      done: { bg: '#EBF0E6', fg: '#5E7355', label: '已完成', dot: '#5E7355', anim: 'none' },
+      running: { bg: '#FBF4EE', fg: '#A4623F', label: '转换中', dot: '#C96442', anim: 'blink 1s infinite' },
+      queued: { bg: '#F0EDE4', fg: '#8A887E', label: '排队中', dot: '#B6B3A8', anim: 'none' },
+      error: { bg: '#F6E7E2', fg: '#B5503A', label: '已跳过', dot: '#B5503A', anim: 'none' },
+    };
+    const queue = this.state.queue.map(q => ({ ...q, ...ST[q.status] }));
+
+    const typeLabel = (t) => t === 'priority' ? '优先级' : t === 'steps' ? '步骤列' : '文本列';
+    const tplFields = columns.filter(c => c.type !== 'index').map(col => ({
+      id: col.id, name: col.name, default: col.default || '', typeLabel: typeLabel(col.type),
+      expanded: this.state.expandedField === col.id, rot: this.state.expandedField === col.id ? '90deg' : '0deg',
+      removable: col.type === 'text',
+      onToggle: () => this.toggleField(col.id),
+      onName: (e) => this.renameField(col.id, e.target.value),
+      onDefault: (e) => this.setFieldDefault(col.id, e.target.value),
+      onDelete: () => this.deleteField(col.id),
+    }));
+    const PAL = ['#FAF8F2', '#FEF2F2', '#F3F4F6', '#DBEAFE', '#DCFCE7', '#FEF9C3', '#FDE68A', '#FCE7F3', '#EDE9FE', '#F0E4F5'];
+    const draftColor = this.state.tplDraft.color;
+    const swatches = PAL.map(c => ({ color: c, ring: c.toLowerCase() === String(draftColor).toLowerCase() ? '2px solid #C96442' : '1px solid #E4E0D5', onPick: () => this.setState(s => ({ tplDraft: { ...s.tplDraft, color: c } })) }));
+
+    const diffItems = [
+      { type: 'added', tag: '新增', title: 'json 格式校验管理 · 大数据量导出性能' },
+      { type: 'added', tag: '新增', title: 'json 格式校验管理 · 导出文件命名规范' },
+      { type: 'modified', tag: '修改', title: 'json 格式校验管理 · 勾选多行导出', field: '预期结果', from: '导出文件包含勾选项', to: '导出文件仅含 exportA、exportB 两条，字段完整无缺失' },
+      { type: 'modified', tag: '修改', title: 'json 格式校验管理 · 未勾选导出全部', field: '优先级', from: 'P2', to: 'P1' },
+      { type: 'modified', tag: '修改', title: 'json 格式校验管理 · 单行导出结果', field: '步骤', from: '3 个步骤', to: '4 个步骤（新增核对步骤）' },
+      { type: 'removed', tag: '删除', title: 'json 校验 · 旧版一键导出（已废弃）' },
+      { type: 'unchanged', tag: '未变', title: 'json 格式校验管理 · 表头全选导出' },
+      { type: 'unchanged', tag: '未变', title: 'json 格式校验管理 · 跨页勾选保持' },
+    ];
+    const DM = { added: { bar: '#7E9166', chipBg: '#EBF0E6', chipFg: '#4F6248' }, removed: { bar: '#C99', chipBg: '#F6E7E2', chipFg: '#B5503A' }, modified: { bar: '#C9A24A', chipBg: '#F6EFDD', chipFg: '#9A7A2E' }, unchanged: { bar: '#DCD7CA', chipBg: '#F0EDE4', chipFg: '#8A887E' } };
+    const diffVals = diffItems.map(d => ({ ...d, ...DM[d.type], showChange: d.type === 'modified' }));
+
+    return {
+      isConvert: screen === 'convert', isPreview: screen === 'preview', isDiff: screen === 'diff',
+      goConvert: () => this.setState({ screen: 'convert' }),
+      goPreview: () => this.setState({ screen: 'preview' }),
+      goDiff: () => this.setState({ screen: 'diff' }),
+      navConvertColor: screen === 'convert' ? '#C96442' : '#6B6A63',
+      navPreviewColor: screen === 'preview' ? '#C96442' : '#6B6A63',
+      navDiffColor: screen === 'diff' ? '#C96442' : '#6B6A63',
+      // direction
+      setX2C: () => this.setState({ dir: 'x2c' }), setC2X: () => this.setState({ dir: 'c2x' }),
+      x2cBg: isX2C ? '#262624' : 'transparent', x2cFg: isX2C ? '#F5F2EC' : '#7A7868', x2cShadow: isX2C ? '0 1px 2px rgba(43,42,39,0.2)' : 'none',
+      c2xBg: !isX2C ? '#262624' : 'transparent', c2xFg: !isX2C ? '#F5F2EC' : '#7A7868', c2xShadow: !isX2C ? '0 1px 2px rgba(43,42,39,0.2)' : 'none',
+      srcLabel: isX2C ? 'XMind' : '禅道 CSV', tgtLabel: isX2C ? '用例表格' : 'XMind',
+      dropTitle: isX2C ? '点击或拖拽上传 .xmind 文件' : '点击或拖拽上传禅道导出的 .csv',
+      dropSub: isX2C ? '解析思维导图结构，生成结构化测试用例' : '还原为可在 XMind 中打开的思维导图',
+      outputs: isX2C ? [{ label: '禅道 CSV' }, { label: 'TestLink XML' }] : [{ label: 'XMind 思维导图 (.xmind)' }],
+      convertLabel: isX2C ? '转换为测试用例' : '转换为 XMind',
+      // mode
+      setSingle: () => this.setState({ mode: 'single' }), setBatch: () => this.setState({ mode: 'batch' }),
+      singleBg: single ? '#262624' : 'transparent', singleFg: single ? '#F5F2EC' : '#7A7868', singleShadow: single ? '0 1px 2px rgba(43,42,39,0.2)' : 'none',
+      batchBg: !single ? '#262624' : 'transparent', batchFg: !single ? '#F5F2EC' : '#7A7868', batchShadow: !single ? '0 1px 2px rgba(43,42,39,0.2)' : 'none',
+      singleMode: single, batchMode: !single, queue, queueCount: queue.length, convertAll: () => this.convertAll(),
+      // preview table
+      editMode, toggleEdit: () => this.setState(s => ({ editMode: !s.editMode })),
+      editLabel: editMode ? '完成编辑' : '编辑模式',
+      editBg: editMode ? '#262624' : '#FFFFFF', editFg: editMode ? '#F5F2EC' : '#5A584F', editBorder: editMode ? '1px solid #262624' : '1px solid #E0DBCE',
+      columns: colVals, allowDrop: (e) => e.preventDefault(), onAddCol: () => this.openAddCol(),
+      grid, addRow: () => this.addRow(),
+      caseCount: rows.length, emptyCount, p0, p1, p2,
+      // modals
+      showColModal: this.state.modal === 'editCol' || this.state.modal === 'addCol',
+      colModalTitle: this.state.modal === 'addCol' ? '新增列' : '编辑列',
+      namePlaceholder: this.state.modal === 'addCol' ? '未命名字段' : '用例标题',
+      formName: this.state.form.name, formDef: this.state.form.def, formRich: this.state.form.rich, notRich: !this.state.form.rich, formEmpty: this.state.form.empty, notEmpty: !this.state.form.empty,
+      onFormName: (e) => this.setState(s => ({ form: { ...s.form, name: e.target.value } })),
+      onFormDef: (e) => this.setState(s => ({ form: { ...s.form, def: e.target.value } })),
+      toggleRich: () => this.setState(s => ({ form: { ...s.form, rich: !s.form.rich } })),
+      toggleEmpty: () => this.setState(s => ({ form: { ...s.form, empty: !s.form.empty } })),
+      closeModal: () => this.closeModal(), confirmCol: () => this.confirmCol(), stop: (e) => e.stopPropagation(),
+      headerColor: this.state.tpl.headerColor, tplName: this.state.tpl.name,
+      records: this.state.records,
+      showTemplate: this.state.modal === 'template', openTemplate: () => this.openTemplate(),
+      tplFields, swatches,
+      tplDraftName: this.state.tplDraft.name, tplDraftColor: this.state.tplDraft.color,
+      onTplName: (e) => this.setState(s => ({ tplDraft: { ...s.tplDraft, name: e.target.value } })),
+      onTplHex: (e) => this.setState(s => ({ tplDraft: { ...s.tplDraft, color: e.target.value } })),
+      addField: () => this.addField(), resetTemplate: () => this.resetTemplate(), saveTemplate: () => this.saveTemplate(),
+      // diff
+      dAdded: 2, dRemoved: 1, dModified: 3, dUnchanged: 5, diffItems: diffVals,
+    };
+  }
+}
+</script>
+</body>
+</html>

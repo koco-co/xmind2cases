@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  ::selection{ background:#E7D3C7; }
+  .x-scroll::-webkit-scrollbar{ height:10px; width:10px; }
+  .x-scroll::-webkit-scrollbar-thumb{ background:#DBD6C9; border-radius:8px; border:2px solid transparent; background-clip:padding-box; }
+  .x-scroll::-webkit-scrollbar-track{ background:transparent; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#F0EEE6; font-family:'Noto Sans SC','Helvetica Neue',sans-serif; color:#2B2A27; -webkit-font-smoothing:antialiased;">
+
+  <sc-if value="{{ isUpload }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="上传首页">
+    <!-- top bar -->
+    <header style="border-bottom:1px solid #E4E0D5; background:rgba(240,238,230,0.85); backdrop-filter:blur(8px); position:sticky; top:0; z-index:20;">
+      <div style="max-width:980px; margin:0 auto; padding:18px 28px; display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:#C96442; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(43,42,39,0.18);">
+            <span style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; color:#FBF6EF; line-height:1;">X</span>
+          </div>
+          <div style="display:flex; flex-direction:column; line-height:1.15;">
+            <span style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; letter-spacing:-0.01em;">XMind2Cases</span>
+            <span style="font-size:12px; color:#8A887E;">思维导图 转 测试用例</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:22px; font-size:13.5px; color:#6B6A63;">
+          <span style="cursor:pointer;" style-hover="color:#2B2A27;">使用指南</span>
+          <span style="cursor:pointer;" style-hover="color:#2B2A27;">反馈问题</span>
+          <span style="width:1px; height:16px; background:#D8D3C6;"></span>
+          <span style="cursor:pointer;" style-hover="color:#2B2A27;">GitHub</span>
+        </div>
+      </div>
+    </header>
+
+    <main style="max-width:760px; margin:0 auto; padding:64px 28px 80px;">
+      <!-- hero copy -->
+      <div style="margin-bottom:34px;">
+        <span style="display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#A4623F; background:#F7EBE3; border:1px solid #EBD8CC; padding:5px 11px; border-radius:999px; margin-bottom:18px;">
+          <span style="width:6px; height:6px; border-radius:50%; background:#C96442;"></span>本地转换 · 数据不出本机
+        </span>
+        <h1 style="font-family:'Newsreader',serif; font-weight:500; font-size:42px; line-height:1.12; letter-spacing:-0.015em; margin:0 0 12px; color:#22211F;">把思维导图，<br>变成规整的测试用例</h1>
+        <p style="font-size:15.5px; line-height:1.6; color:#6B6A63; margin:0; max-width:520px;">上传 .xmind 文件转换为 CSV / XML，或将禅道导出的 .csv 还原成 XMind。一键预览、导出，直接导入 TestLink 与禅道。</p>
+      </div>
+
+      <!-- upload card -->
+      <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:16px; padding:28px; box-shadow:0 1px 3px rgba(43,42,39,0.04);">
+        <div style="border:1.5px dashed #D8CFBF; border-radius:12px; background:#FBFAF6; padding:44px 24px; text-align:center; cursor:pointer; transition:all .18s;" style-hover="border-color:#C96442; background:#FBF4EE;">
+          <div style="width:54px; height:54px; border-radius:14px; background:#F3ECE1; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A4623F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M5 20h14"></path></svg>
+          </div>
+          <p style="font-size:16px; font-weight:500; color:#2B2A27; margin:0 0 6px;">点击或拖拽上传文件</p>
+          <p style="font-size:13px; color:#8A887E; margin:0;">支持 .xmind（转 CSV/XML）或禅道导出的 .csv（转 XMind）</p>
+        </div>
+        <button style="margin-top:18px; width:100%; border:none; background:#262624; color:#F5F2EC; font-family:inherit; font-size:15px; font-weight:500; padding:13px; border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; transition:background .15s;" style-hover="background:#3A3835;" onClick="{{ goPreview }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 8l5-5 5 5"></path><path d="M5 21h14"></path></svg>
+          开始转换
+        </button>
+      </div>
+
+      <!-- recent records -->
+      <div style="margin-top:40px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
+          <h2 style="font-family:'Newsreader',serif; font-weight:500; font-size:23px; margin:0; color:#22211F;">最近转换记录</h2>
+          <span style="font-size:12.5px; color:#9A988D;">本地缓存 · 最多保留 50 条</span>
+        </div>
+
+        <sc-if value="{{ hasRecords }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(43,42,39,0.04);">
+          <div style="display:grid; grid-template-columns:1fr 130px 150px; gap:12px; padding:13px 22px; border-bottom:1px solid #EDE9DF; font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; color:#A4A299;">
+            <div>文件名</div><div>时间</div><div style="text-align:right;">操作</div>
+          </div>
+          <sc-for list="{{ records }}" as="rec" hint-placeholder-count="4">
+            <div style="display:grid; grid-template-columns:1fr 130px 150px; gap:12px; padding:15px 22px; border-bottom:1px solid #F1EDE3; align-items:center;" style-hover="background:#FBFAF6;">
+              <div style="display:flex; align-items:center; gap:11px; min-width:0;">
+                <span style="flex:none; width:30px; height:30px; border-radius:8px; background:{{ rec.iconBg }}; color:{{ rec.iconFg }}; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; letter-spacing:0.02em;">{{ rec.kind }}</span>
+                <span style="font-size:14px; color:#33322E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ rec.name }}</span>
+              </div>
+              <div style="font-size:13px; color:#9A988D;">{{ rec.time }}</div>
+              <div style="display:flex; align-items:center; justify-content:flex-end; gap:4px;">
+                <span title="下载" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#8A887E; cursor:pointer;" style-hover="background:#F3ECE1; color:#A4623F;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 12l5 5 5-5"></path><path d="M5 21h14"></path></svg></span>
+                <span title="导出 CSV" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#8A887E; cursor:pointer;" style-hover="background:#EBF0E6; color:#5E7355;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M9 4v16"></path></svg></span>
+                <span title="导出 XML" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#8A887E; cursor:pointer;" style-hover="background:#F4EEDF; color:#A98231;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18l-4-6 4-6"></path><path d="M16 6l4 6-4 6"></path></svg></span>
+                <span title="预览" onClick="{{ goPreview }}" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#8A887E; cursor:pointer;" style-hover="background:#F3ECE1; color:#A4623F;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+                <span title="删除" style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#B6B3A8; cursor:pointer;" style-hover="background:#F6E7E2; color:#B5503A;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg></span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ noRecords }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:16px; padding:56px 24px; text-align:center; box-shadow:0 1px 3px rgba(43,42,39,0.04);">
+          <div style="width:48px; height:48px; border-radius:12px; background:#F3ECE1; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A4623F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h6"></path></svg>
+          </div>
+          <p style="font-size:15px; font-weight:500; color:#33322E; margin:0 0 5px;">欢迎使用 XMind2Cases</p>
+          <p style="font-size:13px; color:#8A887E; margin:0;">上传一个文件，开始你的第一次转换。</p>
+        </div>
+        </sc-if>
+      </div>
+
+      <footer style="margin-top:48px; text-align:center; font-size:12.5px; color:#A4A299;">
+        Powered by <span style="color:#8A887E;">XMind2Cases</span> · 本地优先的测试用例转换工具
+      </footer>
+    </main>
+  </div>
+  </sc-if>
+
+  <!-- ============ PREVIEW SCREEN ============ -->
+  <sc-if value="{{ isPreview }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="用例预览">
+    <header style="border-bottom:1px solid #E4E0D5; background:rgba(240,238,230,0.88); backdrop-filter:blur(8px); position:sticky; top:0; z-index:20;">
+      <div style="max-width:1320px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:14px; min-width:0;">
+          <span onClick="{{ goUpload }}" style="flex:none; width:36px; height:36px; border-radius:10px; border:1px solid #E0DBCE; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#6B6A63; cursor:pointer;" style-hover="background:#F7F4EC; color:#2B2A27;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+          </span>
+          <div style="min-width:0;">
+            <h1 style="font-family:'Newsreader',serif; font-weight:500; font-size:21px; margin:0; color:#22211F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">cases_20260623_164614.xmind</h1>
+            <p style="font-size:12.5px; color:#9A988D; margin:2px 0 0;">用例预览 · 北京时间</p>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E4E0D5; border-radius:11px; padding:7px 13px;">
+            <span style="font-family:'Newsreader',serif; font-size:20px; font-weight:600; color:#C96442; line-height:1;">{{ moduleCount }}</span>
+            <span style="font-size:11.5px; color:#8A887E; line-height:1.2;">所属<br>模块</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E4E0D5; border-radius:11px; padding:7px 13px;">
+            <span style="font-family:'Newsreader',serif; font-size:20px; font-weight:600; color:#5E7355; line-height:1;">{{ caseCount }}</span>
+            <span style="font-size:11.5px; color:#8A887E; line-height:1.2;">用例<br>标题</span>
+          </div>
+          <span style="width:1px; height:30px; background:#DCD7CA; margin:0 2px;"></span>
+          <button style="border:1px solid #D3DDC9; background:#EFF3E9; color:#4F6248; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;" style-hover="background:#E7EEDD;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M9 4v16"></path></svg>导出 CSV
+          </button>
+          <button style="border:1px solid #E6D9B6; background:#F6EFDD; color:#9A7A2E; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;" style-hover="background:#F1E7CE;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18l-4-6 4-6"></path><path d="M16 6l4 6-4 6"></path></svg>导出 XML
+          </button>
+          <button style="border:none; background:#262624; color:#F5F2EC; font-family:inherit; font-size:13.5px; font-weight:500; padding:9px 15px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px;" style-hover="background:#3A3835;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>模板设置
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main style="max-width:1320px; margin:0 auto; padding:30px 32px 70px;">
+      <div style="background:#FFFFFF; border:1px solid #E7E3D8; border-radius:18px; overflow:hidden; box-shadow:0 1px 3px rgba(43,42,39,0.05);">
+        <div class="x-scroll" style="overflow-x:auto;">
+          <table style="width:100%; min-width:1080px; border-collapse:collapse; font-size:13.5px;">
+            <thead>
+              <tr style="background:#FAF8F2;">
+                <th style="text-align:left; padding:14px 18px; font-size:11.5px; font-weight:500; letter-spacing:0.05em; color:#A4A299; text-transform:uppercase; border-bottom:1px solid #EAE5DA; width:62px;">序号</th>
+                <th style="text-align:left; padding:14px 18px; font-size:11.5px; font-weight:500; letter-spacing:0.05em; color:#A4A299; text-transform:uppercase; border-bottom:1px solid #EAE5DA; width:230px;">所属模块</th>
+                <th style="text-align:left; padding:14px 18px; font-size:11.5px; font-weight:500; letter-spacing:0.05em; color:#A4A299; text-transform:uppercase; border-bottom:1px solid #EAE5DA; width:280px;">用例标题</th>
+                <th style="text-align:left; padding:14px 18px; font-size:11.5px; font-weight:500; letter-spacing:0.05em; color:#A4A299; text-transform:uppercase; border-bottom:1px solid #EAE5DA; width:280px;">前置条件</th>
+                <th style="text-align:left; padding:14px 18px; font-size:11.5px; font-weight:500; letter-spacing:0.05em; color:#A4A299; text-transform:uppercase; border-bottom:1px solid #EAE5DA;">步骤</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ cases }}" as="c" hint-placeholder-count="6">
+                <tr style="border-bottom:1px solid #F1EDE3; vertical-align:top;" style-hover="background:#FBFAF6;">
+                  <td style="padding:18px; color:#B6B3A8; font-family:'Newsreader',serif; font-size:16px;">{{ c.seq }}</td>
+                  <td style="padding:18px;">
+                    <span style="display:inline-flex; align-items:center; gap:7px; background:#F3ECE1; color:#A4623F; font-size:11px; font-weight:500; padding:3px 9px; border-radius:7px; margin-bottom:7px;">{{ c.tag }}</span>
+                    <div style="color:#4A4843; line-height:1.5;">{{ c.module }}</div>
+                  </td>
+                  <td style="padding:18px; color:#2B2A27; font-weight:500; line-height:1.5;">{{ c.title }}</td>
+                  <td style="padding:18px; color:#6B6A63; line-height:1.55;">{{ c.precondition }}</td>
+                  <td style="padding:18px;">
+                    <ol style="margin:0; padding:0; list-style:none; counter-reset:step;">
+                      <sc-for list="{{ c.steps }}" as="step" hint-placeholder-count="3">
+                        <li style="position:relative; padding-left:26px; margin-bottom:6px; color:#5A584F; line-height:1.5;">
+                          <span style="position:absolute; left:0; top:1px; width:18px; height:18px; border-radius:6px; background:#F3ECE1; color:#A4623F; font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center;">{{ step.n }}</span>
+                          {{ step.text }}
+                        </li>
+                      </sc-for>
+                    </ol>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- pagination -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 22px; border-top:1px solid #EDE9DF; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#8A887E;">
+            <span>每页</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; background:#FFFFFF; border:1px solid #E0DBCE; border-radius:8px; padding:5px 10px; color:#4A4843; cursor:pointer;">10
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+            </span>
+            <span>条 · 第 1–9 条，共 9 条</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="width:30px; height:30px; border-radius:8px; border:1px solid #E4E0D5; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#C2BFB4;">«</span>
+            <span style="width:30px; height:30px; border-radius:8px; border:1px solid #E4E0D5; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#C2BFB4;">‹</span>
+            <span style="min-width:30px; height:30px; padding:0 6px; border-radius:8px; background:#262624; color:#F5F2EC; display:flex; align-items:center; justify-content:center; font-size:13px;">1</span>
+            <span style="width:30px; height:30px; border-radius:8px; border:1px solid #E4E0D5; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#C2BFB4;">›</span>
+            <span style="width:30px; height:30px; border-radius:8px; border:1px solid #E4E0D5; background:#FFFFFF; display:flex; align-items:center; justify-content:center; color:#C2BFB4;">»</span>
+          </div>
+        </div>
+      </div>
+
+      <footer style="margin-top:34px; text-align:center; font-size:12.5px; color:#A4A299;">
+        Powered by <span style="color:#8A887E;">XMind2Cases</span> · 本地优先的测试用例转换工具
+      </footer>
+    </main>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:900},&quot;initialScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;upload&quot;,&quot;preview&quot;],&quot;default&quot;:&quot;upload&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;emptyRecords&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { screen: null };
+
+  get screen() {
+    return this.state.screen || this.props.initialScreen || 'upload';
+  }
+
+  renderVals() {
+    const records = [
+      { name: 'cases_20260623_164614.xmind', time: '17 小时前', kind: 'XM', iconBg: '#F3ECE1', iconFg: '#A4623F' },
+      { name: 'cases.xmind', time: '17 小时前', kind: 'XM', iconBg: '#F3ECE1', iconFg: '#A4623F' },
+      { name: '数据资产_STD-用例_20260611_115726.csv', time: '一周前', kind: 'CSV', iconBg: '#EBF0E6', iconFg: '#5E7355' },
+      { name: '数据资产_STD-用例_v2.xmind', time: '一周前', kind: 'XM', iconBg: '#F3ECE1', iconFg: '#A4623F' },
+      { name: '数据资产_STD-用例_20260611_115149.csv', time: '一周前', kind: 'CSV', iconBg: '#EBF0E6', iconFg: '#5E7355' },
+    ];
+
+    const mod = '【岚图汽车】【数据质量】json 格式校验，导出支持勾选导出';
+    const tag = '数据质量';
+    const mk = (txt) => txt.map((t, i) => ({ n: i + 1, text: t }));
+    const cases = [
+      { seq: 1, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证勾选多行后导出文件内容一致', precondition: 'json 格式校验管理列表已存在以下一层级 key（数据源类型为 MySQL）：exportA、exportB、singleExport', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '勾选 exportA、exportB 两行复选框', '点击顶部【导出】按钮，等待文件下载完成', '打开下载的导出文件，核对数据行与勾选项一致']) },
+      { seq: 2, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证未勾选时导出全部记录', precondition: 'json 格式校验管理列表已存在多条 key 记录（数据源类型不限）', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '不勾选任何行，直接点击顶部【导出】按钮', '打开下载的导出文件，与列表当前全量记录核对']) },
+      { seq: 3, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证仅勾选单行的导出结果', precondition: 'json 格式校验管理列表已存在一层级 key：singleExport', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '仅勾选 singleExport 一行复选框', '点击顶部【导出】按钮，等待文件下载完成', '打开下载的导出文件，核对记录条数为 1']) },
+      { seq: 4, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证表头全选后导出全部', precondition: 'json 格式校验管理列表已存在至少 2 条一层级 key（数据源不限）', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '点击表头的全选复选框', '点击顶部【导出】按钮，等待文件下载完成', '打开下载的导出文件，与列表数据逐条核对']) },
+      { seq: 5, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证取消全选后无勾选项', precondition: 'json 格式校验管理列表已存在多条记录，且表头处于全选状态', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '点击表头全选复选框，再次点击取消全选', '点击顶部【导出】按钮', '核对导出文件包含全量记录（无勾选视为全部）']) },
+      { seq: 6, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证跨页勾选保持选中状态', precondition: 'json 格式校验管理列表数据超过 1 页（每页 10 条）', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '在第 1 页勾选若干行，切换到第 2 页继续勾选', '返回第 1 页确认勾选状态仍保留', '点击【导出】，核对包含两页勾选项']) },
+      { seq: 7, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证列表为空时导出提示', precondition: 'json 格式校验管理列表无任何记录', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '在空列表状态下点击顶部【导出】按钮', '核对系统给出"暂无可导出数据"提示且不生成文件']) },
+      { seq: 8, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证导出文件命名规范', precondition: 'json 格式校验管理列表已存在记录', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '勾选任意一行后点击【导出】', '查看下载文件名是否符合 模块_类型_时间戳 规范']) },
+      { seq: 9, tag, module: mod, title: '通用配置 - json 格式校验管理 · 勾选导出 · 验证大数据量导出性能', precondition: 'json 格式校验管理列表已存在 1000 条以上记录', steps: mk(['进入【数据质量 → 通用配置 → json 格式校验管理】', '点击表头全选后点击【导出】', '记录从点击到下载完成的耗时（应在可接受范围内）', '核对导出文件记录条数与列表总数一致']) },
+    ];
+
+    const scr = this.screen;
+    return {
+      isUpload: scr === 'upload',
+      isPreview: scr === 'preview',
+      goUpload: () => this.setState({ screen: 'upload' }),
+      goPreview: () => this.setState({ screen: 'preview' }),
+      records: this.props.emptyRecords ? [] : records,
+      hasRecords: !this.props.emptyRecords,
+      noRecords: !!this.props.emptyRecords,
+      cases,
+      moduleCount: 1,
+      caseCount: 9,
+    };
+  }
+}
+</script>
+</body>
+</html>
