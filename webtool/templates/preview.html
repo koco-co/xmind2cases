@@ -25,6 +25,8 @@
       <nav class="topbar__nav">
         <a class="nav-link" href="{{ url_for('static', filename='guide/index.html') }}" target="_blank">使用指南</a>
         <a class="nav-link" href="https://github.com/koco-co/xmind2cases/issues/new" target="_blank">反馈问题</a>
+        <span class="topbar__sep"></span>
+        <a class="nav-link" href="https://github.com/koco-co/xmind2cases" target="_blank">GitHub</a>
       </nav>
     </div>
   </header>
@@ -90,7 +92,7 @@
       <div class="pager" id="pagination-bar"></div>
     </div>
 
-    <footer class="preview__footer">Powered by XMind2Cases · 本地优先的测试用例转换工具</footer>
+    <footer class="preview__footer">Powered by <a href="https://github.com/koco-co/xmind2cases" target="_blank" rel="noopener">XMind2Cases</a> · 本地优先的测试用例转换工具</footer>
   </main>
 
   {% if is_csv %}
@@ -148,6 +150,7 @@
   <script>
     document.body.dataset.filename = "{{ name }}";
     document.body.dataset.total = "{{ total }}";
+    document.body.dataset.suiteCount = "{{ suite_count }}";
     document.body.dataset.isCsv = "{{ '1' if is_csv else '0' }}";
   </script>
   <script src="{{ url_for('static',filename='js/preview.js') }}"></script>

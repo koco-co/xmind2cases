@@ -3,6 +3,7 @@ import io
 import os
 import shutil
 import tempfile
+import zipfile
 
 # IMPORTANT: set the DB env-var BEFORE importing the application module so that
 # the Flask app singleton binds to a temp DB at import time (not to data.db3).
@@ -131,6 +132,10 @@ def test_preview_renders_v2(client):
     assert "用例体检" in html
     assert "preview.css" in html and "theme.css" in html
     assert 'id="case-table"' in html
+    # 回归保护：suite_count 必须传给前端（体检栏「N 个模块」依赖它）
+    assert "dataset.suiteCount" in html
+    # 回归保护：页脚/顶栏的 GitHub 仓库链接已恢复
+    assert "github.com/koco-co/xmind2cases" in html
 
 
 def _seed_csv(client, name="zentao.csv"):
@@ -153,3 +158,193 @@ def test_preview_csv_shows_download_xmind(client):
     assert "用例体检" not in html  # CSV 不显示体检
     assert 'id="csv-download-btn"' in html
     assert "download_xmind_from_csv" in html or "/to/xmind-from-csv" in html
+
+
+def test_api_upload_sanitizes_path_traversal(client):
+    """带 ../ 的文件名必须被清洗，文件落在 UPLOAD_FOLDER 内、不逃逸到上层目录。"""
+    upload_dir = appmod.app.config["UPLOAD_FOLDER"]
+    with open(DOCS_XMIND, "rb") as f:
+        data = {"file": (io.BytesIO(f.read()), "../../evil.xmind")}
+    resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
+    assert resp.status_code == 200
+    filename = resp.get_json()["filename"]
+
+    # 返回的文件名不得包含路径分隔符或父目录引用
+    assert ".." not in filename
+    assert "/" not in filename and "\\" not in filename
+    assert filename.endswith(".xmind")
+
+    # 文件确实落在 UPLOAD_FOLDER 内
+    saved = os.path.join(upload_dir, filename)
+    assert os.path.exists(saved)
+    # 规范化后的真实路径仍在 UPLOAD_FOLDER 之下（没有逃逸）
+    assert os.path.realpath(saved).startswith(os.path.realpath(upload_dir) + os.sep)
+    # UPLOAD_FOLDER 内只应有这一个被清洗后的文件，且其目录正是 UPLOAD_FOLDER
+    assert os.path.dirname(os.path.realpath(saved)) == os.path.realpath(upload_dir)
+
+
+def test_check_file_name_preserves_chinese_and_strips_traversal():
+    """中文名原样保留，目录成分 / ../ 被剥离。"""
+    c = appmod.check_file_name
+    # 中文与中英混合名应原样保留
+    assert c("用例.xmind") == "用例.xmind"
+    assert c("测试用例_v2.xmind") == "测试用例_v2.xmind"
+    assert c("报告.csv") == "报告.csv"
+    # 普通 ASCII 名不受影响
+    assert c("normal.xmind") == "normal.xmind"
+    assert c("dup.xmind") == "dup.xmind"
+    # 路径穿越（两种分隔符）只保留基础名
+    assert c("../../evil.xmind") == "evil.xmind"
+    assert c("..\\..\\evil.xmind") == "evil.xmind"
+    assert c("/etc/passwd.xmind") == "passwd.xmind"
+
+
+def test_api_upload_preserves_chinese_filename(client):
+    """中文文件名上传后应原样落盘，不被 mangle 成 xmind.xmind。"""
+    upload_dir = appmod.app.config["UPLOAD_FOLDER"]
+    with open(DOCS_XMIND, "rb") as f:
+        data = {"file": (io.BytesIO(f.read()), "用例报告.xmind")}
+    resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
+    assert resp.status_code == 200
+    filename = resp.get_json()["filename"]
+    assert filename == "用例报告.xmind"
+    assert os.path.exists(os.path.join(upload_dir, filename))
+
+
+def test_create_template_normalizes_invalid_header_color(client):
+    """create_template 收到非法 header_color 时回退为默认浅红色。"""
+    resp = client.post(
+        "/api/templates",
+        json={"name": "恶意模版", "header_color": "red;}</style><script>"},
+    )
+    assert resp.status_code == 200
+    tpl_id = resp.get_json()["data"]["id"]
+
+    detail = client.get(f"/api/templates/{tpl_id}").get_json()["data"]
+    assert detail["header_color"] == "#fef2f2"
+
+
+def test_update_template_normalizes_invalid_header_color(client):
+    """update_template 收到非法 header_color 时回退为默认浅红色。"""
+    created = client.post(
+        "/api/templates",
+        json={"name": "可改模版", "header_color": "#abcdef"},
+    ).get_json()
+    tpl_id = created["data"]["id"]
+
+    resp = client.put(
+        f"/api/templates/{tpl_id}",
+        json={"header_color": "#zzz; background:url(x)"},
+    )
+    assert resp.status_code == 200
+
+    detail = client.get(f"/api/templates/{tpl_id}").get_json()["data"]
+    assert detail["header_color"] == "#fef2f2"
+
+
+def test_update_template_keeps_valid_header_color(client):
+    """合法的 6 位十六进制 header_color 应原样保留。"""
+    created = client.post(
+        "/api/templates",
+        json={"name": "颜色模版", "header_color": "#fef2f2"},
+    ).get_json()
+    tpl_id = created["data"]["id"]
+
+    client.put(f"/api/templates/{tpl_id}", json={"header_color": "#A1B2C3"})
+    detail = client.get(f"/api/templates/{tpl_id}").get_json()["data"]
+    assert detail["header_color"] == "#A1B2C3"
+
+
+# ==================== 批量转换 ====================
+
+
+def _batch_convert(client, name, fmt="zentao"):
+    with open(DOCS_XMIND, "rb") as f:
+        return client.post(
+            "/api/batch/convert",
+            data={"file": (io.BytesIO(f.read()), name), "format": fmt},
+            content_type="multipart/form-data",
+        )
+
+
+def test_batch_convert_zentao_returns_output(client):
+    upload_dir = appmod.app.config["UPLOAD_FOLDER"]
+    resp = _batch_convert(client, "batch1.xmind", "zentao")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["success"] is True
+    assert body["output_filename"].endswith(".csv")
+    assert os.path.exists(os.path.join(upload_dir, body["output_filename"]))
+
+
+def test_batch_convert_testlink_returns_xml(client):
+    resp = _batch_convert(client, "batch2.xmind", "testlink")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["success"] is True
+    assert body["output_filename"].endswith(".xml")
+
+
+def test_batch_convert_rejects_bad_format(client):
+    resp = _batch_convert(client, "batch3.xmind", "nope")
+    assert resp.status_code == 400
+    assert resp.get_json()["success"] is False
+
+
+def test_batch_convert_rejects_non_xmind(client):
+    resp = client.post(
+        "/api/batch/convert",
+        data={"file": (io.BytesIO(b"a,b\n1,2\n"), "data.csv"), "format": "zentao"},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400
+    assert resp.get_json()["success"] is False
+
+
+def test_batch_zip_packages_outputs(client):
+    outputs = [
+        _batch_convert(client, n, "zentao").get_json()["output_filename"]
+        for n in ("zipa.xmind", "zipb.xmind")
+    ]
+    resp = client.post("/api/batch/zip", json={"files": outputs})
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/zip"
+    zf = zipfile.ZipFile(io.BytesIO(resp.data))
+    assert set(zf.namelist()) == set(outputs)
+
+
+def test_batch_zip_rejects_empty(client):
+    resp = client.post("/api/batch/zip", json={"files": []})
+    assert resp.status_code == 400
+    assert resp.get_json()["success"] is False
+
+
+def test_batch_zip_rejects_traversal(client):
+    # basename 化 + realpath 校验：穿越路径取不到 UPLOAD_FOLDER 内真实文件 → 无可打包项
+    resp = client.post(
+        "/api/batch/zip",
+        json={"files": ["../../etc/passwd", "../../../secret.txt"]},
+    )
+    assert resp.status_code == 400
+    assert resp.get_json()["success"] is False
+
+
+# ==================== 转换台统计 ====================
+
+
+def test_convert_stats_counts_month_and_cases(client):
+    _seed_upload(client, "stats1.xmind")
+    with appmod.app.app_context():
+        stats = appmod._compute_convert_stats()
+    assert stats["month_files"] >= 1
+    assert stats["total_cases"] > 0
+    assert stats["pass_rate"] is None or 0 <= stats["pass_rate"] <= 100
+
+
+def test_index_renders_real_stats_no_placeholder(client):
+    _seed_upload(client, "stats2.xmind")
+    html = client.get("/").get_data(as_text=True)
+    assert "本月转换文件" in html
+    assert "生成测试用例" in html
+    # 统计卡 + 批量占位均已落地，首页不应再有「暂未上线」
+    assert "暂未上线" not in html

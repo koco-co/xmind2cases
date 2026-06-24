@@ -35,6 +35,7 @@ const ColumnManager = {
   lastTemplateId: null,
   testcases: [],
   total: 0,
+  suiteCount: 0,
   page: 1,
   pageSize: 20,
   filename: '',
@@ -56,6 +57,7 @@ const ColumnManager = {
     try {
       this.filename = document.body.dataset.filename || '';
       this.total = parseInt(document.body.dataset.total || '0', 10);
+      this.suiteCount = parseInt(document.body.dataset.suiteCount || '0', 10);
       const isCsv = document.body.dataset.isCsv === '1';
       if (!this.filename) { console.error('未找到文件名'); return; }
 
@@ -114,7 +116,8 @@ const ColumnManager = {
     const el = document.getElementById('health');
     if (!el) return;
     const pc = this.priorityCounts || { '1': 0, '2': 0, '3': 0, '4': 0 };
-    const empty = (this.emptyCells || []).length;
+    const cells = this.emptyCells || [];
+    const empty = cells.length;
 
     // 优先级颜色与 spec §9 legend dot 色值对应
     const priColors = [
@@ -129,6 +132,15 @@ const ColumnManager = {
         `<span class="health__pri"><span class="pri-dot" style="background:${c}"></span>${priorityMeta(k).label} · ${pc[k]}</span>`
       ).join('');
 
+    // 空值明细（可点击跳转 + 高亮定位）：最多列出 MAX 条，其余以「共 N 处」收尾
+    const MAX = 20;
+    const items = cells.slice(0, MAX).map((c) =>
+      `<button type="button" class="health__empty-item" data-col-id="${this.escapeHtml(c.colId)}" data-row="${c.rowIndex}">
+         <span class="health__empty-col">${this.escapeHtml(c.colName)}</span>
+         <span class="health__empty-row">第 ${c.rowIndex + 1} 行</span>
+       </button>`).join('');
+    const moreNote = empty > MAX ? `<span class="health__empty-more">共 ${empty} 处</span>` : '';
+
     el.innerHTML = `
       <div class="health__brand">
         <div class="health__icon-wrap">
@@ -141,12 +153,56 @@ const ColumnManager = {
       </div>
       <span class="health__div"></span>
       <div class="health__count"><span class="serif">${this.total}</span> 条用例</div>
+      <div class="health__count"><span class="serif">${this.suiteCount}</span> 个模块</div>
       ${empty > 0 ? `
-        <div class="health__warn">
+        <button type="button" class="health__warn" id="health-warn" aria-expanded="false" title="点击查看并定位待补充单元格">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
           ${empty} 处待补充
-        </div>` : ''}
-      <div class="health__pris"><span class="health__pris-label">优先级</span>${dots}</div>`;
+          <svg class="health__warn-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>` : ''}
+      <div class="health__pris"><span class="health__pris-label">优先级</span>${dots}</div>
+      ${empty > 0 ? `
+        <div class="health__empty" id="health-empty" hidden>
+          <div class="health__empty-hint">点击下方标签可跳转并高亮对应的待补充单元格</div>
+          <div class="health__empty-list">${items}${moreNote}</div>
+        </div>` : ''}`;
+
+    // 展开/收起 + 点击跳转高亮（innerHTML 已替换旧节点，每次重渲染重新绑定，不会叠加）
+    if (empty > 0) {
+      const warn = el.querySelector('#health-warn');
+      const panel = el.querySelector('#health-empty');
+      if (warn && panel) {
+        warn.addEventListener('click', () => {
+          const show = panel.hasAttribute('hidden');
+          panel.toggleAttribute('hidden', !show);
+          warn.setAttribute('aria-expanded', show ? 'true' : 'false');
+          warn.classList.toggle('health__warn--open', show);
+        });
+        panel.addEventListener('click', (e) => {
+          const btn = e.target.closest('.health__empty-item');
+          if (!btn) return;
+          this.jumpToCell(btn.dataset.colId, parseInt(btn.dataset.row, 10));
+        });
+      }
+    }
+  },
+
+  /* ─── 跳转并高亮指定单元格（空值快速定位）─── */
+  async jumpToCell(colId, row) {
+    if (Number.isNaN(row)) return;
+    const targetPage = Math.floor(row / this.pageSize) + 1;
+    if (targetPage !== this.page) {
+      this.page = targetPage;
+      await this.fetchPage();
+    }
+    requestAnimationFrame(() => {
+      const cell = document.querySelector(`td[data-col-id="${colId}"][data-row="${String(row)}"]`);
+      if (cell) {
+        cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cell.classList.add('empty-cell-highlight');
+        setTimeout(() => cell.classList.remove('empty-cell-highlight'), 1500);
+      }
+    });
   },
 
   /* ─── 分页数据拉取 ─── */
@@ -245,7 +301,8 @@ const ColumnManager = {
     }
 
     const tooLong = col.id === 'name' && (tc.name || '').length > 100;
-    return `<span class="cell-text${tooLong ? ' cell-text--long' : ''}">${this.escapeHtml(raw)}</span>${
+    const safe = this.escapeHtml(raw);
+    return `<span class="cell-text${tooLong ? ' cell-text--long' : ''}" title="${safe.replace(/"/g, '&quot;')}">${safe}</span>${
       tooLong ? '<span class="cell-warn">标题过长</span>' : ''}`;
   },
 

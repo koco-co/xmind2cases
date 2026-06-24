@@ -108,23 +108,53 @@
 
       <!-- 批量面板 -->
       <div id="batch-panel" hidden>
-        <div class="batch-empty">批量转换 · 暂未上线</div>
+        <div class="dropzone" id="batch-dropzone">
+          <div class="dropzone__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A4623F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M5 20h14"></path>
+            </svg>
+          </div>
+          <p class="dropzone__title">点击或拖拽批量上传 .xmind 文件</p>
+          <p class="dropzone__sub">仅 XMind → 用例，单批最多 20 个；转换后可打包 ZIP 下载</p>
+        </div>
+        <input id="batch-file" type="file" accept=".xmind" multiple hidden>
+
+        <div class="batch-format">
+          <span class="batch-format__label">目标格式</span>
+          <div class="seg" data-toggle="fmt">
+            <button class="seg__btn seg__btn--on" data-fmt="zentao">禅道 CSV</button>
+            <button class="seg__btn" data-fmt="testlink">TestLink XML</button>
+          </div>
+        </div>
+
+        <div class="batch-queue" id="batch-queue" hidden></div>
+
+        <div class="batch-actions" id="batch-actions" hidden>
+          <button class="btn btn--ink" id="batch-run">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+            <span id="batch-run-label">全部转换</span>
+          </button>
+          <button class="btn btn--outline" id="batch-zip" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 12l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+            打包 ZIP 下载全部
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stat-grid">
-      <div class="stat-card stat-card--placeholder">
-        <div class="serif">—</div>
-        <div>本月转换文件 · 暂未上线</div>
+      <div class="stat-card">
+        <div class="serif">{{ stats.month_files if stats else 0 }}</div>
+        <div>本月转换文件</div>
       </div>
-      <div class="stat-card stat-card--placeholder">
-        <div class="serif">—</div>
-        <div>生成测试用例 · 暂未上线</div>
+      <div class="stat-card">
+        <div class="serif">{{ stats.total_cases if stats else 0 }}</div>
+        <div>生成测试用例</div>
       </div>
-      <div class="stat-card stat-card--placeholder">
-        <div class="serif">—</div>
-        <div>用例体检通过率 · 暂未上线</div>
+      <div class="stat-card">
+        <div class="serif">{% if stats and stats.pass_rate is not none %}{{ stats.pass_rate }}%{% else %}—{% endif %}</div>
+        <div>用例体检通过率（核心字段齐全）</div>
       </div>
     </div>
 

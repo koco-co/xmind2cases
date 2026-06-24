@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+import zipfile
 from os.path import exists, join
 from typing import Any, Generator, List, Optional, Tuple
 from urllib.parse import quote
@@ -401,28 +402,57 @@ def allowed_file(filename: str) -> bool:
 
 
 def check_file_name(name: str) -> str:
-    """Check and secure a filename.
+    """Secure an uploaded filename against path traversal, keeping unicode names.
+
+    Strips any directory components (``../``, ``..\\``, leading paths) so the
+    result can never escape the upload folder, while preserving Chinese / other
+    unicode basenames that ``secure_filename`` would otherwise drop. The
+    extension is normalized to ``.xmind`` / ``.csv`` (defaulting to ``.xmind``).
 
     Args:
-        name: Original filename.
+        name: Original filename from the upload.
 
     Returns:
-        Secured filename with original extension.
-
-    Raises:
-        AssertionError: If unable to parse the filename.
+        A safe, directory-free filename with a normalized extension.
     """
-    secured = secure_filename(name)
-    if not secured:
-        # Only keep letters and digits from file name
-        secured = re.sub(r"[^\w\d]+", "_", name)
-        assert secured, f"Unable to parse file name: {name}!"
+    # Keep only the final path component (handles both / and \ separators),
+    # neutralizing "../../foo" and "..\\..\\foo" traversal attempts.
+    base = re.split(r"[\\/]", name)[-1]
+    root, ext = os.path.splitext(base)
 
-    # Preserve original extension
-    _, ext = os.path.splitext(name)
-    if ext.lower() in (".xmind", ".csv"):
-        return secured if secured.endswith(ext) else secured + ext
-    return secured + ".xmind"
+    # Collapse path-unsafe characters to "_" but keep unicode word chars
+    # (incl. Chinese), spaces, dots and hyphens; trim surrounding junk.
+    secured = re.sub(r"[^\w.\- ]", "_", root, flags=re.UNICODE).strip(". _")
+    if not secured:
+        # Fall back when nothing usable remains (e.g. name was all separators).
+        secured = secure_filename(root) or "file"
+
+    ext = ext.lower()
+    if ext not in (".xmind", ".csv"):
+        ext = ".xmind"
+    return secured + ext
+
+
+_HEADER_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def normalize_header_color(value: Any, default: str = "#fef2f2") -> str:
+    """Validate a table-header color, falling back to the default light red.
+
+    Mirrors the frontend check (^#[0-9a-fA-F]{6}$). Header color is injected
+    into an inline ``style="background:..."`` attribute in preview.js without
+    escaping, so only a strict 6-digit hex color may be stored verbatim.
+
+    Args:
+        value: Candidate color value from the request payload.
+        default: Fallback color when ``value`` is missing or malformed.
+
+    Returns:
+        The original value if it is a valid hex color, otherwise ``default``.
+    """
+    if isinstance(value, str) and _HEADER_COLOR_RE.match(value):
+        return value
+    return default
 
 
 def save_file(file: Any) -> Optional[str]:
@@ -435,7 +465,9 @@ def save_file(file: Any) -> Optional[str]:
         Filename if successful, None otherwise.
     """
     if file and allowed_file(file.filename):
-        filename = file.filename
+        # Sanitize against path traversal (e.g. "../../foo.xmind") while keeping
+        # Chinese filenames via check_file_name's unicode-preserving fallback.
+        filename = check_file_name(file.filename)
         upload_to = join(app.config["UPLOAD_FOLDER"], filename)
 
         if exists(upload_to):
@@ -478,6 +510,54 @@ def verify_uploaded_files(files: List[Any]) -> None:
         g.error = f"Invalid file: {','.join(g.invalid_files)}"
 
 
+def _case_is_complete(tc: dict) -> bool:
+    """核心字段齐全：标题 + 至少一条有动作的步骤 + 至少一条预期。"""
+    name = (tc.get("name") or "").strip()
+    steps = tc.get("steps") or []
+    has_step = any((s.get("actions") or "").strip() for s in steps)
+    has_exp = any((s.get("expectedresults") or "").strip() for s in steps)
+    return bool(name and has_step and has_exp)
+
+
+def _compute_convert_stats() -> dict:
+    """转换台统计（轻量·当前快照）。
+
+    - month_files: 本月转换文件数，按 Record 行数统计（行不随裁剪删除，故准确）。
+    - total_cases: 当前保留的 XMind 文件实时解析出的用例总数。
+    - pass_rate: 核心字段（标题/步骤/预期）齐全的用例占比（无用例时为 None）。
+
+    生成用例数 / 通过率走实时解析（最多 keep 个文件），不落库、零迁移。
+    """
+    month = arrow.now().format("YYYY-MM")
+    month_files = Record.query.filter(Record.create_on.like(f"{month}%")).count()
+
+    total_cases = 0
+    passed = 0
+    records = Record.query.filter_by(is_deleted=0).order_by(Record.id.desc()).all()
+    for r in records:
+        if not (r.name or "").lower().endswith(".xmind"):
+            continue
+        path = join(app.config["UPLOAD_FOLDER"], r.name)
+        if not exists(path):
+            continue
+        try:
+            cases = get_xmind_testcase_list(path)
+        except Exception as exc:  # noqa: BLE001 — 单文件解析失败不影响整体统计
+            app.logger.warning("统计解析失败 %s: %s", r.name, exc)
+            continue
+        for tc in cases or []:
+            total_cases += 1
+            if _case_is_complete(tc):
+                passed += 1
+
+    pass_rate = round(passed / total_cases * 100) if total_cases else None
+    return {
+        "month_files": month_files,
+        "total_cases": total_cases,
+        "pass_rate": pass_rate,
+    }
+
+
 @app.route("/", methods=["GET", "POST"])
 def index(download_xml: Optional[str] = None) -> Any:
     """Main index route for file upload and listing.
@@ -512,7 +592,11 @@ def index(download_xml: Optional[str] = None) -> Any:
     if g.filename:
         return redirect(url_for("preview_file", filename=g.filename))
     else:
-        return render_template("index.html", records=list(get_records()))
+        return render_template(
+            "index.html",
+            records=list(get_records()),
+            stats=_compute_convert_stats(),
+        )
 
 
 @app.route("/uploads/<filename>")
@@ -836,7 +920,7 @@ def create_template():
     tpl = ColumnTemplate(
         name=name,
         columns_json=json.dumps(columns, ensure_ascii=False),
-        header_color=data.get("header_color", "#fef2f2"),
+        header_color=normalize_header_color(data.get("header_color")),
     )
     db.session.add(tpl)
     db.session.commit()
@@ -873,7 +957,7 @@ def update_template(template_id):
     if "columns" in data:
         tpl.columns_json = json.dumps(data["columns"], ensure_ascii=False)
     if "header_color" in data:
-        tpl.header_color = data["header_color"] or "#fef2f2"
+        tpl.header_color = normalize_header_color(data["header_color"])
 
     db.session.commit()
 
@@ -919,6 +1003,98 @@ def api_upload() -> Any:
         return jsonify({"success": False, "message": "仅支持 .xmind 或 .csv 文件"}), 400
     delete_records()
     return jsonify({"success": True, "filename": filename})
+
+
+# ==================== 批量转换 API ====================
+
+# 批量仅支持 XMind → 用例：格式 → 转换器（产物路径已带正确后缀）
+_BATCH_CONVERTERS = {
+    "zentao": xmind_to_zentao_csv_file,
+    "testlink": xmind_to_testlink_xml_file,
+}
+
+
+@app.route("/api/batch/convert", methods=["POST"])
+def api_batch_convert() -> Any:
+    """批量转换中的单个文件：保存 .xmind 并转为指定格式，返回产物文件名。
+
+    复用 save_file（落盘 / 去重 / insert_record），与单文件上传一致进入历史。
+    转换异常被捕获为 success:false，让前端逐行标记失败而不中断整批。
+
+    刻意不在此调用 delete_records()：批量场景下逐文件修剪可能误删本批
+    早先已转换、仍待打包的产物；记录照常创建，留待下次单文件上传时修剪。
+    """
+    fmt = (request.form.get("format") or "").strip().lower()
+    if fmt not in _BATCH_CONVERTERS:
+        return jsonify({"success": False, "message": "不支持的转换格式"}), 400
+    if "file" not in request.files:
+        return jsonify({"success": False, "message": "未收到文件"}), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"success": False, "message": "请选择文件"}), 400
+    # 批量仅支持 XMind → 用例
+    if not file.filename.lower().endswith(".xmind"):
+        return jsonify({"success": False, "message": "批量转换仅支持 .xmind 文件"}), 400
+
+    filename = save_file(file)  # 落盘 / 去重 / insert_record
+    if not filename:
+        return jsonify({"success": False, "message": "仅支持 .xmind 文件"}), 400
+
+    converter = _BATCH_CONVERTERS[fmt]
+    full_path = join(app.config["UPLOAD_FOLDER"], filename)
+    try:
+        converted = converter(full_path)
+    except Exception as exc:  # noqa: BLE001 — 单文件失败不应中断整批
+        app.logger.warning("批量转换失败 %s: %s", filename, exc)
+        converted = None
+    if not converted:
+        return jsonify({"success": False, "filename": filename, "message": "转换失败"})
+
+    return jsonify(
+        {
+            "success": True,
+            "filename": filename,
+            "output_filename": os.path.basename(converted),
+            "format": fmt,
+        }
+    )
+
+
+@app.route("/api/batch/zip", methods=["POST"])
+def api_batch_zip() -> Any:
+    """把已转换的产物打包成 ZIP 流式返回。
+
+    files 中每个名字只取 basename 并经 realpath 校验，必须是 UPLOAD_FOLDER
+    内的真实文件，杜绝路径穿越。
+    """
+    data = request.get_json(silent=True) or {}
+    names = data.get("files")
+    if not isinstance(names, list) or not names:
+        return jsonify({"success": False, "message": "没有可打包的文件"}), 400
+
+    upload_dir = os.path.realpath(app.config["UPLOAD_FOLDER"])
+    buf = io.BytesIO()
+    added = 0
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name in names:
+            if not isinstance(name, str) or not name:
+                continue
+            base = os.path.basename(name)  # 剥离任何目录成分
+            target = os.path.realpath(join(app.config["UPLOAD_FOLDER"], base))
+            if not target.startswith(upload_dir + os.sep) or not os.path.isfile(target):
+                continue
+            zf.write(target, arcname=base)
+            added += 1
+
+    if added == 0:
+        return jsonify({"success": False, "message": "没有可打包的文件"}), 400
+
+    zip_name = f"用例批量_{arrow.now().format('YYYYMMDD_HHmmss')}.zip"
+    return Response(
+        buf.getvalue(),
+        mimetype="application/zip",
+        headers={"Content-Disposition": _content_disposition_attachment(zip_name)},
+    )
 
 
 # ==================== 导出 API ====================
