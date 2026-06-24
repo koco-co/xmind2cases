@@ -138,6 +138,31 @@ def test_preview_renders_v2(client):
     assert "github.com/koco-co/xmind2cases" in html
 
 
+def test_preview_cell_fixed_size_and_hover_title_markers():
+    """回归保护：单元格固定宽高（限高裁剪）+ 悬浮 title 看全文。
+
+    历史版表格单元格为 table-cell-truncate（固定宽高、超出悬浮看全文），v2 改版后
+    丢失。表格由 preview.js 客户端渲染、pytest 不执行 JS，故对静态资源做标记断言。
+    """
+    base = os.path.dirname(os.path.dirname(__file__))
+    with open(
+        os.path.join(base, "webtool", "static", "js", "preview.js"), encoding="utf-8"
+    ) as f:
+        js = f.read()
+    with open(
+        os.path.join(base, "webtool", "static", "css", "preview.css"), encoding="utf-8"
+    ) as f:
+        css = f.read()
+    # 每个 td 渲染 title（步骤/预期合并全文），鼠标悬浮可看全文
+    assert "getCellTitle" in js
+    # 限高后标记溢出单元格以加渐隐提示
+    assert "markClippedCells" in js
+    assert "is-clipped" in js
+    # CSS：单元格限高裁剪 + 渐隐
+    assert "is-clipped" in css
+    assert "max-height: 132px" in css
+
+
 def _seed_csv(client, name="zentao.csv"):
     rows = (
         "用例编号,所属产品,所属模块,用例标题,前置条件,步骤,预期,优先级,用例类型\n"

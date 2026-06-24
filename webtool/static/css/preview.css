@@ -416,6 +416,38 @@
   color: var(--p1-fg);
 }
 
+/* ─── 单元格固定宽高：限高裁剪 + 悬浮看全文（还原历史 table-cell-truncate 行为）─── */
+/* 列宽上限，避免长内容把表格撑宽；CJK 与长 token 均能换行 */
+.case-table td { max-width: 360px; }
+.cell-text,
+.steps-list {
+  display: block;
+  max-height: 132px;          /* 约 5~6 行；超出裁剪，悬浮 td title 看全文 */
+  overflow: hidden;
+  position: relative;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+/* 被裁剪时底部渐隐，提示「还有更多」（由 JS markClippedCells 标记）*/
+.cell-text.is-clipped::after,
+.steps-list.is-clipped::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
+}
+/* 行 hover 时渐隐色跟随行底色，避免色块割裂 */
+.case-table tbody tr:hover .cell-text.is-clipped::after,
+.case-table tbody tr:hover .steps-list.is-clipped::after {
+  background: linear-gradient(to bottom, transparent, #FBFAF6);
+}
+/* 裁剪单元格给出「可看全文」光标提示 */
+.case-table td:hover .is-clipped { cursor: help; }
+
 /* 编辑中状态 */
 td.editing { background: #FBF8F4; }
 .cell-edit-input {

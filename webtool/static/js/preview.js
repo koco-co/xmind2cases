@@ -268,10 +268,16 @@ const ColumnManager = {
       const gi = start + i;
       return `<tr>
         <td class="idx-cell"><span class="serif">${gi + 1}</span></td>
-        ${cols.map((col) => `<td data-col-id="${this.escapeHtml(col.id)}" data-row="${gi}">${this.renderCell(tc, col, gi, emptySet)}</td>`).join('')}
+        ${cols.map((col) => {
+          const t = this.escapeHtml(this.getCellTitle(tc, col, gi)).replace(/"/g, '&quot;');
+          return `<td data-col-id="${this.escapeHtml(col.id)}" data-row="${gi}"${t ? ` title="${t}"` : ''}>${this.renderCell(tc, col, gi, emptySet)}</td>`;
+        }).join('')}
         ${edit ? `<td class="op-cell"><button class="del-row btn--disabled" title="暂未上线" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg></button></td>` : ''}
       </tr>`;
     }).join('');
+
+    // 限高裁剪后标记溢出单元格（加渐隐），下一帧布局就绪再测量
+    requestAnimationFrame(() => this.markClippedCells());
   },
 
   /* ─── 单元格渲染（v2）─── */
@@ -307,8 +313,25 @@ const ColumnManager = {
 
     const tooLong = col.id === 'name' && (tc.name || '').length > 100;
     const safe = this.escapeHtml(raw);
-    return `<span class="cell-text${tooLong ? ' cell-text--long' : ''}" title="${safe.replace(/"/g, '&quot;')}">${safe}</span>${
+    // 悬浮看全文的 title 由 <td> 统一承载（见 renderTable / getCellTitle），此处不再重复
+    return `<span class="cell-text${tooLong ? ' cell-text--long' : ''}">${safe}</span>${
       tooLong ? '<span class="cell-warn">标题过长</span>' : ''}`;
+  },
+
+  /* ─── 单元格悬浮全文（hover title）：步骤/预期按行合并，优先级无需提示 ─── */
+  getCellTitle(tc, col, rowIndex) {
+    if (col.type === 'index' || col.id === 'importance' || col.type === 'priority') return '';
+    const v = this.getColumnValueRaw(tc, col, rowIndex);
+    return typeof v === 'string' ? v : String(v == null ? '' : v);
+  },
+
+  /* ─── 标记被限高裁剪的单元格：加渐隐提示，配合 td title 悬浮看全文 ─── */
+  markClippedCells() {
+    const table = document.getElementById('case-table');
+    if (!table) return;
+    table.querySelectorAll('.cell-text, .steps-list').forEach((el) => {
+      el.classList.toggle('is-clipped', el.scrollHeight - el.clientHeight > 1);
+    });
   },
 
   /* ─── 分页渲染（v2 原型风格）─── */
