@@ -365,7 +365,7 @@ const ColumnManager = {
           if (this.editMode) {
             banner.hidden = false;
             banner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
-              编辑模式：拖动表头调列顺序、✎ 改列、＋ 加列；单元格内容编辑与增删行将在后续版本开放`;
+              编辑模式：拖动表头可调列顺序、✎ 改列、＋ 加列；单元格内容编辑与增删行将在后续版本开放`;
           } else {
             banner.hidden = true;
           }
@@ -417,6 +417,7 @@ const ColumnManager = {
     const tbody = table.querySelector('tbody');
     if (tbody) {
       tbody.addEventListener('dblclick', (e) => {
+        if (!this.editMode) return;
         const cell = e.target.closest('td[data-col-id]');
         if (!cell) return;
         const colId = cell.dataset.colId;
@@ -771,7 +772,6 @@ const ColumnManager = {
 
       const header = document.createElement('div');
       header.className = 'tpl-col-header';
-      header.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0;';
       const toggleIcon = document.createElement('span');
       toggleIcon.className = 'tpl-col-toggle';
       toggleIcon.style.color = 'var(--text-3)';
@@ -788,14 +788,13 @@ const ColumnManager = {
         delBtn.style.cssText = 'margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-3);padding:4px;';
         delBtn.title = '删除';
         delBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>';
-        delBtn.addEventListener('click', (e) => { e.stopPropagation(); });
         header.appendChild(delBtn);
       }
       row.appendChild(header);
 
       const body = document.createElement('div');
       body.className = 'tpl-col-body';
-      body.style.cssText = 'display:none;padding:8px 0 4px 22px;';
+      body.style.display = 'none';
 
       const nameField = document.createElement('div');
       nameField.style.marginBottom = '8px';
