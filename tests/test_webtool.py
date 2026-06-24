@@ -102,6 +102,15 @@ def _seed_upload(client, name="demo.xmind"):
     return name
 
 
+def test_index_renders_v2_convert(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "一处转换，两个方向" in html
+    assert "theme.css" in html and "convert.css" in html
+    assert 'data-screen="convert"' in html
+
+
 def test_empty_cells_returns_health_summary(client):
     name = _seed_upload(client)
     resp = client.get(f"/api/preview/{name}/empty-cells")

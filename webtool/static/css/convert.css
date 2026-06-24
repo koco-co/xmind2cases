@@ -1,0 +1,364 @@
+/* ============================================================
+   convert.css — 转换台专属样式
+   依赖: theme.css (CSS variables + .topbar / .seg / .btn / .modal)
+   ============================================================ */
+
+/* 顶栏分隔线 */
+.topbar__sep{ width:1px; height:16px; background:var(--border-2); }
+
+/* ---- 页面主容器 ---- */
+.convert{
+  max-width:780px;
+  margin:0 auto;
+  padding:52px 32px 80px;
+}
+
+/* ---- Hero 标题区 ---- */
+.hero{
+  text-align:center;
+  margin-bottom:32px;
+}
+.hero h1.serif{
+  font-weight:500;
+  font-size:40px;
+  line-height:1.12;
+  letter-spacing:-0.015em;
+  margin:0 0 12px;
+  color:var(--text-strong);
+}
+.hero p{
+  font-size:15.5px;
+  line-height:1.6;
+  color:var(--text-2);
+  margin:0 auto;
+  max-width:480px;
+}
+
+/* ---- 转换卡片 ---- */
+.convert-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:26px;
+  box-shadow:0 1px 3px rgba(43,42,39,0.04);
+}
+
+.convert-card__segs{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:20px;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+/* ---- Flow viz ---- */
+.flow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  margin-bottom:22px;
+}
+.flow__node{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:9px;
+}
+.flow__icon{
+  width:60px;
+  height:60px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.flow__icon--src{
+  background:#FBF4EE;
+  border:1px solid #EBD8CC;
+}
+.flow__icon--tgt{
+  background:#F4F1E8;
+  border:1px solid var(--border-2);
+}
+.flow__label{
+  font-size:13px;
+  font-weight:500;
+  color:#33322E;
+}
+.flow__arrow{
+  flex:none;
+}
+
+/* ---- Dropzone ---- */
+.dropzone{
+  border:1.5px dashed #D8CFBF;
+  border-radius:12px;
+  background:var(--field-bg);
+  padding:34px 24px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .18s, background .18s;
+}
+.dropzone:hover,
+.dropzone--over{
+  border-color:var(--accent);
+  background:#FBF4EE;
+}
+.dropzone__icon{
+  width:48px;
+  height:48px;
+  border-radius:13px;
+  background:#F3ECE1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 12px;
+}
+.dropzone__title{
+  font-size:15.5px;
+  font-weight:500;
+  color:var(--text);
+  margin:0 0 5px;
+}
+.dropzone__sub{
+  font-size:13px;
+  color:var(--text-3);
+  margin:0;
+}
+
+/* ---- 输出格式 chips ---- */
+.out-chips{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+.out-chips::before{
+  content:'输出格式';
+  font-size:12.5px;
+  color:var(--text-4);
+}
+.out-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12.5px;
+  color:#5A584F;
+  background:#F4F1E8;
+  border:1px solid var(--border);
+  padding:5px 11px;
+  border-radius:var(--radius-chip);
+}
+.out-chip::before{
+  content:'';
+  display:inline-block;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--accent);
+  flex:none;
+}
+
+/* ---- 批量占位 ---- */
+.batch-empty{
+  margin-top:18px;
+  padding:40px 24px;
+  text-align:center;
+  font-size:14px;
+  color:var(--text-4);
+  border:1px dashed var(--border);
+  border-radius:12px;
+}
+
+/* ---- 统计卡片 ---- */
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-top:30px;
+}
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px 18px;
+}
+.stat-card .serif{
+  font-size:27px;
+  font-weight:600;
+  color:var(--text-strong);
+  line-height:1;
+}
+.stat-card div:last-child{
+  font-size:12.5px;
+  color:var(--text-3);
+  margin-top:5px;
+}
+.stat-card--placeholder .serif{
+  color:var(--text-3);
+}
+.stat-card--placeholder div:last-child{
+  color:var(--text-4);
+}
+
+/* ---- 最近转换记录 ---- */
+.records{
+  margin-top:36px;
+}
+.records__head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+.records__head h2.serif{
+  font-weight:500;
+  font-size:22px;
+  margin:0;
+  color:var(--text-strong);
+}
+.records__hint{
+  font-size:12.5px;
+  color:var(--text-4);
+}
+.records__hint--accent{
+  color:var(--accent-ink);
+}
+.records__table{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 1px 3px rgba(43,42,39,0.04);
+}
+.records__empty{
+  padding:48px 24px;
+  text-align:center;
+  font-size:14px;
+  color:var(--text-3);
+}
+
+/* 表头 */
+.rec-header{
+  display:grid;
+  grid-template-columns:1fr 110px 176px;
+  gap:12px;
+  padding:12px 22px;
+  border-bottom:1px solid var(--divider);
+  font-size:11.5px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  color:var(--text-4);
+}
+.rec-header__actions{
+  text-align:right;
+}
+
+/* 记录行 */
+.rec-row{
+  display:grid;
+  grid-template-columns:1fr 110px 176px;
+  gap:12px;
+  padding:14px 22px;
+  border-bottom:1px solid var(--row-divider);
+  align-items:center;
+  transition:background .15s;
+}
+.rec-row:last-child{
+  border-bottom:none;
+}
+.rec-row:hover{
+  background:var(--field-bg);
+}
+.rec-row__name{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:0;
+}
+.rec-row__badge{
+  flex:none;
+  width:30px;
+  height:30px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  font-weight:700;
+}
+.rec-row__badge--xmind{
+  background:#FBF4EE;
+  color:var(--accent-ink);
+}
+.rec-row__badge--csv{
+  background:var(--p3-bg);
+  color:var(--p3-fg);
+}
+.rec-row__filename{
+  font-size:14px;
+  color:#33322E;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.rec-row__time{
+  font-size:13px;
+  color:var(--text-4);
+  white-space:nowrap;
+}
+
+/* 操作区 */
+.rec-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:2px;
+}
+.rec-actions__btn{
+  width:30px;
+  height:30px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-3);
+  cursor:pointer;
+  transition:background .15s, color .15s;
+}
+/* 下载 XMind */
+.rec-actions__btn--dl:hover{ background:#F3ECE1; color:var(--accent-ink); }
+/* 导出 CSV */
+.rec-actions__btn--csv:hover{ background:var(--p3-bg); color:var(--p3-fg); }
+/* 导出 XML */
+.rec-actions__btn--xml:hover{ background:var(--p2-bg); color:var(--p2-fg); }
+/* 预览 */
+.rec-actions__btn--preview{
+  color:var(--accent-ink);
+  background:#F7EFE9;
+}
+.rec-actions__btn--preview:hover{ background:#F3ECE1; }
+/* 删除 */
+.rec-actions__btn--del{ color:#B6B3A8; }
+.rec-actions__btn--del:hover{ background:var(--p1-bg); color:var(--p1-fg); }
+
+/* ---- 页脚 ---- */
+.convert__footer{
+  margin-top:42px;
+  text-align:center;
+  font-size:12.5px;
+  color:var(--text-4);
+}
+
+/* ---- 响应式 ---- */
+@media(max-width:600px){
+  .convert{ padding:32px 16px 60px; }
+  .hero h1.serif{ font-size:30px; }
+  .stat-grid{ grid-template-columns:1fr; }
+  .convert-card__segs{ flex-direction:column; align-items:flex-start; }
+  .rec-header{ grid-template-columns:1fr 80px 140px; }
+  .rec-row{ grid-template-columns:1fr 80px 140px; }
+}

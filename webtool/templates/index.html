@@ -1,205 +1,219 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMind2Cases</title>
-    <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" type="image/x-icon"/>
-    <!-- 保留 Pure.css 直到迁移完成 -->
-    <link rel="stylesheet" type="text/css" media="all" href="{{ url_for('static',filename='css/pure-min.css') }}">
-    <link rel="stylesheet" type="text/css" media="all" href="{{ url_for('static',filename='css/custom.css') }}">
-    <!-- 添加 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        slate: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            200: '#e2e8f0',
-                            300: '#cbd5e1',
-                            400: '#94a3b8',
-                            600: '#475569',
-                            700: '#334155',
-                            800: '#1e293b',
-                            900: '#0f172a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XMind2Cases</title>
+  <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" type="image/x-icon"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/theme.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/convert.css') }}">
 </head>
-<body class="bg-slate-50 font-sans text-slate-600">
-    <!-- 顶部导航栏 -->
-    <nav class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50"
-         aria-label="主导航">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <a href="{{ url_for('index') }}" class="flex items-center hover:opacity-80 transition-opacity">
-                    <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor"
-                         viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span class="ml-2 text-xl font-semibold text-slate-900">XMind2Cases</span>
-                </a>
-                <span class="text-sm text-slate-500 hidden sm:inline">思维导图转测试用例</span>
-            </div>
+<body data-screen="convert">
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a href="{{ url_for('index') }}" class="brand">
+        <div class="brand__logo">X</div>
+        <div>
+          <div class="brand__name">XMind2Cases</div>
+          <div class="brand__sub">思维导图 · 测试用例 双向转换</div>
         </div>
-    </nav>
+      </a>
+      <nav class="topbar__nav">
+        <a class="nav-link" href="{{ url_for('static', filename='guide/index.html') }}" target="_blank">使用指南</a>
+        <a class="nav-link" href="https://github.com/koco-co/xmind2cases/issues/new" target="_blank">反馈问题</a>
+        <span class="topbar__sep"></span>
+        <a class="nav-link" href="https://github.com/koco-co/xmind2cases" target="_blank">GitHub</a>
+      </nav>
+    </div>
+  </header>
 
-    <!-- 主内容区域 -->
-    <main class="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-4xl mx-auto">
-            <!-- 文件上传卡片 -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8 mb-8">
-                <form method="post" enctype="multipart/form-data" id="upload-form">
-                    <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-6 sm:p-8 lg:p-12 hover:border-indigo-400 hover:bg-slate-50 transition-all cursor-pointer">
-                        <input id="file" accept=".xmind,.csv" type="file" name="file" required class="hidden"/>
-                        <div class="text-center">
-                            <svg class="w-12 h-12 sm:w-16 sm:h-16 text-slate-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                            <p id="file-label" class="text-base sm:text-lg font-medium text-slate-700 mb-2">点击或拖拽上传文件</p>
-                            <p class="text-sm text-slate-400">支持 .xmind（转换为 CSV/XML）或 .csv 禅道导出（转换为 XMind）</p>
-                        </div>
-                    </div>
+  <main class="convert">
 
-                    <div id="file-info" class="hidden mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span id="selected-file-name" class="text-sm font-medium text-indigo-700"></span>
-                        </div>
-                    </div>
+    <div class="hero">
+      <h1 class="serif">一处转换，两个方向</h1>
+      <p>XMind 思维导图与禅道 / TestLink 用例之间自由互转，全程本地完成，数据不出本机。</p>
+    </div>
 
-                    <button type="submit" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        开始转换
-                    </button>
-                </form>
-            </div>
-
-            <!-- 历史记录表格 -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200">
-                    <h2 class="text-lg font-semibold text-slate-900">最近转换记录</h2>
-                </div>
-
-                {% if records %}
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">文件名</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">时间</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-slate-200">
-                            {% for record in records %}
-                            <tr class="hover:bg-slate-50">
-                                <td class="px-6 py-4 text-sm text-slate-700" title="{{ record[1] }}">
-                                    <span class="block max-w-[300px] truncate">{{ record[0] }}</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                    {{ record[2] }}
-                                </td>
-                                <td class="px-3 py-4 whitespace-nowrap text-sm">
-                                    <div class="flex items-center gap-2">
-                                        {% if record[1].lower().endswith('.csv') %}
-                                        <!-- CSV 文件：下载 XMind -->
-                                        <a href="{{ url_for('download_xmind_from_csv',filename=record[1]) }}"
-                                           class="text-emerald-600 hover:text-emerald-700 p-1.5 hover:bg-emerald-50 rounded transition-colors"
-                                           title="转换为 XMind 并下载">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                            </svg>
-                                        </a>
-                                        {% else %}
-                                        <!-- 下载 XMind -->
-                                        <a href="{{ url_for('uploaded_file',filename=record[1]) }}"
-                                           class="text-indigo-600 hover:text-indigo-700 p-1.5 hover:bg-indigo-50 rounded transition-colors"
-                                           title="下载 XMind 文件">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                        </a>
-
-                                        <!-- 导出 CSV (表格图标) -->
-                                        <a href="{{ url_for('download_zentao_file',filename=record[1]) }}"
-                                           class="text-emerald-600 hover:text-emerald-700 p-1.5 hover:bg-emerald-50 rounded transition-colors"
-                                           title="导出 CSV 格式">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                            </svg>
-                                        </a>
-
-                                        <!-- 导出 XML (代码图标) -->
-                                        <a href="{{ url_for('download_testlink_file',filename=record[1]) }}"
-                                           class="text-amber-600 hover:text-amber-700 p-1.5 hover:bg-amber-50 rounded transition-colors"
-                                           title="导出 XML 格式">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                            </svg>
-                                        </a>
-                                        {% endif %}
-
-                                        <!-- 预览 -->
-                                        <a href="{{ url_for('preview_file',filename=record[1]) }}"
-                                           class="text-indigo-600 hover:text-indigo-700 p-1.5 hover:bg-indigo-50 rounded transition-colors"
-                                           title="预览测试用例">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        </a>
-
-                                        <!-- 删除 -->
-                                        <a href="{{ url_for('delete_file',filename=record[1], record_id=record[4]) }}"
-                                           class="text-red-600 hover:text-red-700 p-1.5 hover:bg-red-50 rounded transition-colors"
-                                           onclick="return confirm('确定要删除这个文件吗?')"
-                                           title="删除文件">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="px-6 py-12 text-center">
-                    <svg class="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p class="text-slate-500 mb-2">欢迎使用 XMind2Cases!</p>
-                    <p class="text-sm text-slate-400">上传 XMind 文件,快速转换为测试用例,导入到 TestLink 或禅道。</p>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- 页脚 -->
-            <footer class="mt-12 text-center text-sm text-slate-400">
-                <a href="{{ url_for('static', filename='guide/index.html') }}" target="_blank" class="hover:text-slate-600">使用指南</a>
-                <span class="mx-2">|</span>
-                <a href="https://github.com/koco-co/xmind2cases/issues/new" target="_blank" class="hover:text-slate-600">反馈问题</a>
-                <span class="mx-2">|</span>
-                Powered by <a href="https://github.com/koco-co/xmind2cases" target="_blank" class="hover:text-slate-600">XMind2Cases</a>
-            </footer>
+    <div class="convert-card">
+      <!-- 方向 + 模式分段开关 -->
+      <div class="convert-card__segs">
+        <div class="seg" data-toggle="dir">
+          <button class="seg__btn seg__btn--on" data-dir="x2c">XMind → 用例</button>
+          <button class="seg__btn" data-dir="c2x">CSV → XMind</button>
         </div>
-    </main>
+        <div class="seg" data-toggle="mode">
+          <button class="seg__btn seg__btn--on" data-mode="single">单文件</button>
+          <button class="seg__btn" data-mode="batch">批量转换</button>
+        </div>
+      </div>
 
-<script src="{{ url_for('static',filename='js/upload.js') }}"></script>
+      <!-- Flow viz -->
+      <div class="flow">
+        <div class="flow__node">
+          <div class="flow__icon flow__icon--src">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C96442" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="5" cy="12" r="2.5"></circle>
+              <circle cx="18" cy="6" r="2.5"></circle>
+              <circle cx="18" cy="18" r="2.5"></circle>
+              <path d="M7.3 11l8.4-4M7.3 13l8.4 4"></path>
+            </svg>
+          </div>
+          <span class="flow__label" data-flow-src>XMind</span>
+        </div>
+        <svg class="flow__arrow" width="44" height="20" viewBox="0 0 44 20" fill="none" stroke="#C9A38E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 10h38M33 3l7 7-7 7"></path>
+        </svg>
+        <div class="flow__node">
+          <div class="flow__icon flow__icon--tgt">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7A7868" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2.5"></rect>
+              <path d="M3 9h18M9 9v12"></path>
+            </svg>
+          </div>
+          <span class="flow__label" data-flow-tgt>用例表格</span>
+        </div>
+      </div>
 
+      <!-- 单文件面板 -->
+      <div id="single-panel">
+        <div class="dropzone" id="dropzone">
+          <div class="dropzone__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A4623F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 16V4"></path>
+              <path d="M7 9l5-5 5 5"></path>
+              <path d="M5 20h14"></path>
+            </svg>
+          </div>
+          <p class="dropzone__title" id="drop-title">点击或拖拽上传 .xmind 文件</p>
+          <p class="dropzone__sub" id="drop-sub">解析思维导图结构，生成结构化测试用例</p>
+        </div>
+        <input id="file" type="file" accept=".xmind" hidden>
+
+        <div class="out-chips" id="out-chips">
+          <span class="out-chip">禅道 CSV</span>
+          <span class="out-chip">TestLink XML</span>
+        </div>
+
+        <button class="btn btn--ink" id="convert-btn" style="width:100%;margin-top:20px;font-size:15px;padding:13px;border-radius:11px;justify-content:center;gap:9px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"></path>
+          </svg>
+          <span id="convert-label">转换为测试用例</span>
+        </button>
+      </div>
+
+      <!-- 批量面板 -->
+      <div id="batch-panel" hidden>
+        <div class="batch-empty">批量转换 · 暂未上线</div>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stat-grid">
+      <div class="stat-card stat-card--placeholder">
+        <div class="serif">—</div>
+        <div>本月转换文件 · 暂未上线</div>
+      </div>
+      <div class="stat-card stat-card--placeholder">
+        <div class="serif">—</div>
+        <div>生成测试用例 · 暂未上线</div>
+      </div>
+      <div class="stat-card stat-card--placeholder">
+        <div class="serif">—</div>
+        <div>用例体检通过率 · 暂未上线</div>
+      </div>
+    </div>
+
+    <!-- 最近转换记录 -->
+    <section class="records">
+      <div class="records__head">
+        <h2 class="serif">最近转换记录</h2>
+        <span class="records__hint">本地缓存 · 点击 <span class="records__hint--accent">预览</span> 查看用例</span>
+      </div>
+
+      <div class="records__table">
+        <div class="rec-header">
+          <div>文件名</div>
+          <div>时间</div>
+          <div class="rec-header__actions">操作</div>
+        </div>
+
+        {% if records %}
+          {% for record in records %}
+          <div class="rec-row">
+            <div class="rec-row__name">
+              {% if record[1].lower().endswith('.csv') %}
+              <span class="rec-row__badge rec-row__badge--csv">CSV</span>
+              {% else %}
+              <span class="rec-row__badge rec-row__badge--xmind">XMD</span>
+              {% endif %}
+              <span class="rec-row__filename" title="{{ record[1] }}">{{ record[0] }}</span>
+            </div>
+            <div class="rec-row__time">{{ record[2] }}</div>
+            <div class="rec-actions">
+              {% if record[1].lower().endswith('.csv') %}
+              <!-- CSV 文件操作 -->
+              <a href="{{ url_for('download_xmind_from_csv',filename=record[1]) }}"
+                 class="rec-actions__btn rec-actions__btn--dl" title="转换为 XMind 并下载">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12"></path><path d="M7 12l5 5 5-5"></path><path d="M5 21h14"></path>
+                </svg>
+              </a>
+              {% else %}
+              <!-- XMind 文件操作 -->
+              <a href="{{ url_for('uploaded_file',filename=record[1]) }}"
+                 class="rec-actions__btn rec-actions__btn--dl" title="下载 XMind 文件">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12"></path><path d="M7 12l5 5 5-5"></path><path d="M5 21h14"></path>
+                </svg>
+              </a>
+              <a href="{{ url_for('download_zentao_file',filename=record[1]) }}"
+                 class="rec-actions__btn rec-actions__btn--csv" title="导出 CSV 格式">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M9 4v16"></path>
+                </svg>
+              </a>
+              <a href="{{ url_for('download_testlink_file',filename=record[1]) }}"
+                 class="rec-actions__btn rec-actions__btn--xml" title="导出 XML 格式">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 18l-4-6 4-6"></path><path d="M16 6l4 6-4 6"></path>
+                </svg>
+              </a>
+              {% endif %}
+
+              <!-- 预览（CSV 和 XMind 都有） -->
+              <a href="{{ url_for('preview_file',filename=record[1]) }}"
+                 class="rec-actions__btn rec-actions__btn--preview" title="预览测试用例">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </a>
+
+              <!-- 删除 -->
+              <a href="{{ url_for('delete_file',filename=record[1], record_id=record[4]) }}"
+                 class="rec-actions__btn rec-actions__btn--del" title="删除文件"
+                 onclick="return confirm('确定要删除这个文件吗?')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="records__empty">欢迎使用 XMind2Cases！上传 XMind 文件，快速转换为测试用例。</div>
+        {% endif %}
+      </div>
+    </section>
+
+    <footer class="convert__footer">Powered by XMind2Cases · 本地优先的测试用例转换工具</footer>
+  </main>
+
+  <script src="{{ url_for('static',filename='js/upload.js') }}"></script>
 </body>
 </html>
