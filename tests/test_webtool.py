@@ -90,3 +90,25 @@ def test_api_upload_dedupes_same_name(client):
     second = up()
     assert first == "dup.xmind"
     assert second != first and second.endswith(".xmind")
+
+
+def _seed_upload(client, name="demo.xmind"):
+    with open(DOCS_XMIND, "rb") as f:
+        client.post(
+            "/api/upload",
+            data={"file": (io.BytesIO(f.read()), name)},
+            content_type="multipart/form-data",
+        )
+    return name
+
+
+def test_empty_cells_returns_health_summary(client):
+    name = _seed_upload(client)
+    resp = client.get(f"/api/preview/{name}/empty-cells")
+    assert resp.status_code == 200
+    data = resp.get_json()["data"]
+    assert "empty_cells" in data
+    assert isinstance(data["total"], int) and data["total"] > 0
+    pc = data["priority_counts"]
+    assert set(pc.keys()) == {"1", "2", "3", "4"}
+    assert sum(pc.values()) == data["total"]

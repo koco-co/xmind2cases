@@ -655,45 +655,55 @@ def preview_file(filename: str) -> Any:
 
 @app.route("/api/preview/<path:filename>/empty-cells", methods=["GET"])
 def get_empty_cells(filename: str) -> Any:
-    """全局检测空值，返回所有空值单元格列表"""
+    """体检摘要：全量优先级分布 + 总数 + 空值单元格列表。"""
     full_path = join(app.config["UPLOAD_FOLDER"], filename)
     if not exists(full_path):
         abort(404)
 
-    # CSV 预览不支持空值检测（有别于 XMind 解析后的字段）
     if filename.lower().endswith(".csv"):
-        return jsonify({"success": True, "data": {"empty_cells": []}})
+        from xmind2cases.csv_to_xmind import csv_to_testcase_dicts
 
-    template_id = request.args.get("template_id", type=int)
-    if not template_id:
-        return jsonify({"success": True, "data": {"empty_cells": []}})
+        testcases = csv_to_testcase_dicts(full_path)
+    else:
+        testcases = get_xmind_testcase_list(full_path)
 
-    tpl = ColumnTemplate.query.get(template_id)
-    columns = tpl.columns if tpl else DEFAULT_COLUMNS
-    sorted_columns = sorted(columns, key=lambda x: x.get("order", 0))
-    empty_check_cols = [c for c in sorted_columns if c.get("empty_check") is True]
+    priority_counts = {"1": 0, "2": 0, "3": 0, "4": 0}
+    for tc in testcases:
+        imp = str(tc.get("importance", 2))
+        if imp not in priority_counts:
+            imp = "4"
+        priority_counts[imp] += 1
 
-    if not empty_check_cols:
-        return jsonify({"success": True, "data": {"empty_cells": []}})
-
-    testcases = get_xmind_testcase_list(full_path)
-    empty_cells = []
-    for row_index, tc in enumerate(testcases):
-        for col in empty_check_cols:
-            val = get_column_value(tc, col, row_index)
-            if _is_value_empty(val):
-                empty_cells.append(
-                    {
-                        "colId": col.get("id", ""),
-                        "rowIndex": row_index,
-                        "colName": col.get("name", col.get("id", "")),
-                    }
-                )
+    empty_cells: list = []
+    if not filename.lower().endswith(".csv"):
+        template_id = request.args.get("template_id", type=int)
+        if template_id:
+            tpl = ColumnTemplate.query.get(template_id)
+            columns = tpl.columns if tpl else DEFAULT_COLUMNS
+            sorted_columns = sorted(columns, key=lambda x: x.get("order", 0))
+            empty_check_cols = [
+                c for c in sorted_columns if c.get("empty_check") is True
+            ]
+            for row_index, tc in enumerate(testcases):
+                for col in empty_check_cols:
+                    val = get_column_value(tc, col, row_index)
+                    if _is_value_empty(val):
+                        empty_cells.append(
+                            {
+                                "colId": col.get("id", ""),
+                                "rowIndex": row_index,
+                                "colName": col.get("name", col.get("id", "")),
+                            }
+                        )
 
     return jsonify(
         {
             "success": True,
-            "data": {"empty_cells": empty_cells},
+            "data": {
+                "empty_cells": empty_cells,
+                "total": len(testcases),
+                "priority_counts": priority_counts,
+            },
         }
     )
 
