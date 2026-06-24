@@ -415,3 +415,35 @@ def test_case_edit_rejects_csv(client):
         f"/api/preview/{name}/cases/0", json={"field": "name", "value": "x"}
     )
     assert r.status_code == 400
+
+
+# ==================== 版本对比 Diff ====================
+
+
+def test_diff_empty_when_unedited(client):
+    name = _seed_upload(client, "diff1.xmind")
+    client.get(f"/api/preview/{name}/cases")  # 触发快照初始化
+    res = client.get(f"/api/preview/{name}/diff").get_json()
+    assert res["success"] is True
+    assert res["data"]["changes"] == []
+    assert res["data"]["changed_rows"] == 0
+
+
+def test_diff_shows_edit_after_patch(client):
+    name = _seed_upload(client, "diff2.xmind")
+    client.patch(
+        f"/api/preview/{name}/cases/0",
+        json={"field": "name", "value": "改了标题DIFF"},
+    )
+    res = client.get(f"/api/preview/{name}/diff").get_json()
+    assert res["success"] is True
+    changes = res["data"]["changes"]
+    assert any(c["field"] == "name" and c["new"] == "改了标题DIFF" for c in changes)
+    assert res["data"]["changed_rows"] >= 1
+
+
+def test_diff_rejects_csv(client):
+    name = _seed_csv(client, "diff.csv")
+    r = client.get(f"/api/preview/{name}/diff")
+    assert r.status_code == 400
+    assert r.get_json()["success"] is False

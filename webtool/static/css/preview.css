@@ -431,6 +431,32 @@ td.editing { background: #FBF8F4; }
 }
 textarea.cell-edit-input { resize: vertical; line-height: 1.5; }
 
+/* ─── 版本对比弹窗 ─── */
+.modal--wide { max-width: 640px; width: 92vw; }
+.modal__sub { font-size: 12.5px; color: var(--text-3); margin-top: 4px; }
+.diff-list {
+  max-height: 56vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.diff-empty { text-align: center; color: var(--text-3); font-size: 13px; padding: 28px 0; }
+.diff-item { border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
+.diff-item__head { font-size: 12.5px; color: var(--text); font-weight: 500; }
+.diff-item__case { color: var(--text-4); font-weight: 400; margin-left: 8px; }
+.diff-old, .diff-new {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 5px 9px;
+  border-radius: 7px;
+  margin-top: 6px;
+}
+.diff-old { background: #F6E7E2; color: #8A4636; }
+.diff-new { background: var(--ok-bg); color: var(--ok-fg); }
+.diff-tag { display: inline-block; font-size: 11px; font-weight: 600; margin-right: 7px; opacity: 0.7; }
+.diff-empty-val { color: var(--text-4); font-style: italic; }
+
 /* 列标题内联编辑 */
 .col-title-input {
   border: 1px solid var(--accent);

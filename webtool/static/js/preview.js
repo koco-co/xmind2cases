@@ -419,6 +419,12 @@ const ColumnManager = {
       tplSettingsBtn.addEventListener('click', () => this.openTemplateSettingsModal());
     }
 
+    // 版本对比
+    const diffBtn = document.getElementById('diff-btn');
+    if (diffBtn) {
+      diffBtn.addEventListener('click', () => this.openDiffModal());
+    }
+
     // 编辑模式切换（Phase 1：仅列管理）
     const editToggle = document.getElementById('edit-toggle');
     if (editToggle) {
@@ -1282,6 +1288,49 @@ const ColumnManager = {
       alert('保存失败，请重试');
       return false;
     }
+  },
+
+  /* ─── 版本对比：当前编辑后 ↔ 原始 XMind ─── */
+  async openDiffModal() {
+    let data;
+    try {
+      const r = await fetch(`/api/preview/${encodeURIComponent(this.filename)}/diff`);
+      const res = await r.json();
+      if (!res.success) { alert(res.message || '对比失败'); return; }
+      data = res.data;
+    } catch (err) { alert('对比失败，请重试'); return; }
+
+    const changes = data.changes || [];
+    const rowsHtml = changes.length === 0
+      ? '<div class="diff-empty">暂无改动 · 当前内容与原始 XMind 一致</div>'
+      : changes.map((c) => `
+          <div class="diff-item">
+            <div class="diff-item__head">第 ${c.rowIndex + 1} 行 · ${this.escapeHtml(c.fieldName)}<span class="diff-item__case">${this.escapeHtml(c.caseName || '')}</span></div>
+            <div class="diff-old"><span class="diff-tag">原始</span>${this.diffText(c.old)}</div>
+            <div class="diff-new"><span class="diff-tag">当前</span>${this.diffText(c.new)}</div>
+          </div>`).join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal modal--wide">
+        <div class="modal__title serif">版本对比</div>
+        <div class="modal__sub">当前编辑后 ↔ 原始 XMind · ${data.changed_rows} 行有改动</div>
+        <div class="modal__divider"></div>
+        <div class="diff-list">${rowsHtml}</div>
+        <div class="modal__actions" style="margin-top:18px;">
+          <button class="btn btn--ink" id="diff-close">关闭</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#diff-close').addEventListener('click', close);
+  },
+
+  diffText(s) {
+    const t = this.escapeHtml(s || '');
+    return t === '' ? '<span class="diff-empty-val">（空）</span>' : t.replace(/\n/g, '<br>');
   },
 
   async switchTemplate(templateId) {

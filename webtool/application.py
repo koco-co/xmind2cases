@@ -945,6 +945,73 @@ def update_case_field(filename: str, row_index: int) -> Any:
     return jsonify({"success": True})
 
 
+_DIFF_FIELDS = [
+    ("name", "用例标题"),
+    ("suite", "所属模块"),
+    ("preconditions", "前置条件"),
+    ("steps", "步骤"),
+    ("expectedresults", "预期"),
+    ("importance", "优先级"),
+]
+
+
+def _case_field_text(case: dict, field: str) -> str:
+    """用例某字段的可比较文本（与前端 getColumnValueRaw 口径一致）。"""
+    steps = case.get("steps") or []
+    if field == "steps":
+        return "\n".join((s.get("actions") or "") for s in steps)
+    if field == "expectedresults":
+        return "\n".join((s.get("expectedresults") or "") for s in steps)
+    if field == "importance":
+        return str(case.get("importance") or "")
+    return str(case.get(field) or "")
+
+
+@app.route("/api/preview/<path:filename>/diff", methods=["GET"])
+def get_case_diff(filename: str) -> Any:
+    """对比当前（编辑后快照）与原始 XMind 解析，逐行逐字段返回差异。"""
+    full_path = join(app.config["UPLOAD_FOLDER"], filename)
+    if not exists(full_path):
+        abort(404)
+    if filename.lower().endswith(".csv"):
+        return jsonify({"success": False, "message": "CSV 预览不支持版本对比"}), 400
+
+    original = get_xmind_testcase_list(full_path)
+    current = get_cases(filename)
+
+    changes = []
+    for i in range(max(len(original), len(current))):
+        o = original[i] if i < len(original) else {}
+        c = current[i] if i < len(current) else {}
+        case_name = _case_field_text(c, "name") or _case_field_text(o, "name")
+        for field, label in _DIFF_FIELDS:
+            ov = _case_field_text(o, field)
+            cv = _case_field_text(c, field)
+            if ov != cv:
+                changes.append(
+                    {
+                        "rowIndex": i,
+                        "field": field,
+                        "fieldName": label,
+                        "caseName": case_name,
+                        "old": ov,
+                        "new": cv,
+                    }
+                )
+
+    changed_rows = len({ch["rowIndex"] for ch in changes})
+    return jsonify(
+        {
+            "success": True,
+            "data": {
+                "changes": changes,
+                "changed_rows": changed_rows,
+                "total": len(current),
+            },
+        }
+    )
+
+
 @app.route("/delete/<filename>/<int:record_id>")
 def delete_file(filename: str, record_id: int) -> Any:
     """Delete a file and its record.
