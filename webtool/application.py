@@ -30,7 +30,14 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
-from webtool.models import AppSetting, ColumnTemplate, DEFAULT_COLUMNS, Record, db
+from webtool.models import (
+    AppSetting,
+    CaseSnapshot,
+    ColumnTemplate,
+    DEFAULT_COLUMNS,
+    Record,
+    db,
+)
 from xmind2cases.testlink import xmind_to_testlink_xml_file
 from xmind2cases.utils import get_xmind_testcase_list, get_xmind_testsuites
 from xmind2cases.zentao import xmind_to_zentao_csv_file
@@ -204,6 +211,7 @@ def delete_record(filename: str, record_id: int) -> None:
         record_id: Database record ID.
     """
     _delete_related_files(filename)
+    _delete_snapshot(filename)
     record = Record.query.get(record_id)
     if record:
         record.is_deleted = 1
@@ -226,6 +234,7 @@ def delete_records(keep: int = 20) -> None:
     )
     for record in records:
         _delete_related_files(record.name)
+        CaseSnapshot.query.filter_by(filename=record.name).delete()
         record.is_deleted = 1
     db.session.commit()
 
@@ -699,6 +708,93 @@ def download_zentao_file(filename: str) -> Any:
     return _download_converted_file(filename, xmind_to_zentao_csv_file, "csv")
 
 
+# ==================== 用例快照（编辑持久化）====================
+
+
+def get_cases(filename: str) -> list:
+    """读取用例列表。
+
+    XMind：优先读快照；无快照则解析并落快照（首次预览即初始化），
+    此后预览 / 体检 / 导出都以快照为准，使编辑得以持久化。
+    CSV：直接解析、不快照（CSV 预览只读，不支持编辑）。
+    """
+    full_path = join(app.config["UPLOAD_FOLDER"], filename)
+    if filename.lower().endswith(".csv"):
+        from xmind2cases.csv_to_xmind import csv_to_testcase_dicts
+
+        return csv_to_testcase_dicts(full_path)
+    snap = CaseSnapshot.query.filter_by(filename=filename).first()
+    if snap:
+        return json.loads(snap.cases_json)
+    cases = get_xmind_testcase_list(full_path)
+    _save_snapshot(filename, cases)
+    return cases
+
+
+def _save_snapshot(filename: str, cases: list) -> None:
+    """写入 / 更新某文件的用例快照。"""
+    payload = json.dumps(cases, ensure_ascii=False)
+    snap = CaseSnapshot.query.filter_by(filename=filename).first()
+    if snap:
+        snap.cases_json = payload
+    else:
+        db.session.add(CaseSnapshot(filename=filename, cases_json=payload))
+    db.session.commit()
+
+
+def _delete_snapshot(filename: str) -> None:
+    """删除某文件的用例快照（文件被清理时同步清掉）。"""
+    CaseSnapshot.query.filter_by(filename=filename).delete()
+    db.session.commit()
+
+
+_EDITABLE_CASE_FIELDS = {
+    "suite",
+    "name",
+    "preconditions",
+    "importance",
+    "steps",
+    "expectedresults",
+}
+
+
+def _set_step_lines(case: dict, key: str, text: Any) -> None:
+    """按多行文本重建 steps：一行对应一步的 actions 或 expectedresults。
+
+    actions 与 expectedresults 按下标对齐，行数不一致时以较长者为准补空。
+    """
+    lines = str(text or "").split("\n")
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    steps = case.get("steps") or []
+    n = max(len(lines), len(steps))
+    rebuilt = []
+    for i in range(n):
+        actions = (steps[i].get("actions") if i < len(steps) else "") or ""
+        expected = (steps[i].get("expectedresults") if i < len(steps) else "") or ""
+        if key == "actions":
+            actions = lines[i] if i < len(lines) else ""
+        else:
+            expected = lines[i] if i < len(lines) else ""
+        rebuilt.append({"actions": actions, "expectedresults": expected})
+    case["steps"] = rebuilt
+
+
+def _apply_case_edit(case: dict, field: str, value: Any) -> None:
+    """把单字段编辑就地应用到用例 dict。"""
+    if field in ("suite", "name", "preconditions"):
+        case[field] = "" if value is None else str(value)
+    elif field == "importance":
+        try:
+            case["importance"] = int(value)
+        except (TypeError, ValueError):
+            case["importance"] = 2
+    elif field == "steps":
+        _set_step_lines(case, "actions", value)
+    elif field == "expectedresults":
+        _set_step_lines(case, "expectedresults", value)
+
+
 @app.route("/preview/<path:filename>")
 def preview_file(filename: str) -> Any:
     """Preview testcases from an uploaded XMind or CSV file.
@@ -724,7 +820,7 @@ def preview_file(filename: str) -> Any:
     else:
         testsuites = get_xmind_testsuites(full_path)
         suite_count = sum(len(suite.sub_suites or []) for suite in testsuites)
-        testcases = get_xmind_testcase_list(full_path)
+        testcases = get_cases(filename)
         total = len(testcases)
 
     return render_template(
@@ -744,12 +840,7 @@ def get_empty_cells(filename: str) -> Any:
     if not exists(full_path):
         abort(404)
 
-    if filename.lower().endswith(".csv"):
-        from xmind2cases.csv_to_xmind import csv_to_testcase_dicts
-
-        testcases = csv_to_testcase_dicts(full_path)
-    else:
-        testcases = get_xmind_testcase_list(full_path)
+    testcases = get_cases(filename)
 
     priority_counts = {"1": 0, "2": 0, "3": 0, "4": 0}
     for tc in testcases:
@@ -807,12 +898,7 @@ def get_preview_cases(filename: str) -> Any:
         page_size = 10
     page = max(1, page)
 
-    if filename.lower().endswith(".csv"):
-        from xmind2cases.csv_to_xmind import csv_to_testcase_dicts
-
-        testcases = csv_to_testcase_dicts(full_path)
-    else:
-        testcases = get_xmind_testcase_list(full_path)
+    testcases = get_cases(filename)
 
     total = len(testcases)
     start = (page - 1) * page_size
@@ -830,6 +916,33 @@ def get_preview_cases(filename: str) -> Any:
             },
         }
     )
+
+
+@app.route("/api/preview/<path:filename>/cases/<int:row_index>", methods=["PATCH"])
+def update_case_field(filename: str, row_index: int) -> Any:
+    """持久化预览中单个用例字段的编辑（仅 XMind）。
+
+    Body: {"field": <suite|name|preconditions|importance|steps|expectedresults>,
+           "value": <文本；steps/expectedresults 为多行文本，一行一步>}
+    """
+    full_path = join(app.config["UPLOAD_FOLDER"], filename)
+    if not exists(full_path):
+        abort(404)
+    if filename.lower().endswith(".csv"):
+        return jsonify({"success": False, "message": "CSV 预览不支持编辑"}), 400
+
+    data = request.get_json(silent=True) or {}
+    field = data.get("field")
+    if field not in _EDITABLE_CASE_FIELDS:
+        return jsonify({"success": False, "message": "不支持编辑该字段"}), 400
+
+    cases = get_cases(filename)
+    if row_index < 0 or row_index >= len(cases):
+        return jsonify({"success": False, "message": "行号超出范围"}), 400
+
+    _apply_case_edit(cases[row_index], field, data.get("value", ""))
+    _save_snapshot(filename, cases)
+    return jsonify({"success": True})
 
 
 @app.route("/delete/<filename>/<int:record_id>")
@@ -1139,7 +1252,7 @@ def export_csv_with_template(filename: str):
     else:
         columns = DEFAULT_COLUMNS
 
-    testcases = get_xmind_testcase_list(full_path)
+    testcases = get_cases(filename)
     csv_content = generate_csv_with_columns(testcases, columns)
 
     base_name = filename[:-6] if filename.endswith(".xmind") else filename
@@ -1169,7 +1282,7 @@ def export_xml_with_template(filename: str):
     else:
         columns = DEFAULT_COLUMNS
 
-    testcases = get_xmind_testcase_list(full_path)
+    testcases = get_cases(filename)
     xml_content = generate_xml_with_columns(testcases, columns)
 
     base_name = filename[:-6] if filename.endswith(".xmind") else filename

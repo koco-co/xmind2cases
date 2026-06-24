@@ -29,6 +29,11 @@ function priorityMeta(importance) {
   return PRIORITY[n] || PRIORITY[4];
 }
 
+/* 可在预览中编辑并持久化的内置字段 */
+const EDITABLE_BUILTIN = new Set([
+  'suite', 'name', 'preconditions', 'steps', 'expectedresults', 'importance',
+]);
+
 const ColumnManager = {
   currentTemplate: null,
   templates: [],
@@ -430,7 +435,7 @@ const ColumnManager = {
           if (this.editMode) {
             banner.hidden = false;
             banner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
-              编辑模式：拖动表头可调列顺序、✎ 改列、＋ 加列；单元格内容编辑与增删行将在后续版本开放`;
+              编辑模式：拖动表头可调列顺序、✎ 改列、＋ 加列；双击单元格可编辑内容（自动持久化，导出同步生效）。增删行将在后续版本开放`;
           } else {
             banner.hidden = true;
           }
@@ -487,9 +492,12 @@ const ColumnManager = {
         if (!cell) return;
         const colId = cell.dataset.colId;
         const col = this.currentTemplate?.columns?.find(c => c.id === colId);
-        if (col && col.is_custom) {
-          const row = parseInt(cell.dataset.row, 10);
+        if (!col) return;
+        const row = parseInt(cell.dataset.row, 10);
+        if (col.is_custom) {
           this.editCell(colId, row, cell);
+        } else if (EDITABLE_BUILTIN.has(colId)) {
+          this.editBuiltinCell(col, row, cell);
         }
       });
     }
@@ -1195,6 +1203,85 @@ const ColumnManager = {
       if (e.key === 'Enter') { e.preventDefault(); saveValue(); }
       else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
     });
+  },
+
+  /* ─── 内置字段单元格编辑（持久化到用例快照）─── */
+  editBuiltinCell(col, row, cell) {
+    const localIdx = row - (this.page - 1) * this.pageSize;
+    const tc = this.testcases[localIdx];
+    if (!tc) return;
+    const colId = col.id;
+    const currentValue = this.getColumnValueRaw(tc, col, row);
+    cell.classList.add('editing');
+
+    let input;
+    if (colId === 'importance') {
+      input = document.createElement('select');
+      input.innerHTML = [1, 2, 3, 4]
+        .map((n) => `<option value="${n}">${PRIORITY[n].label}</option>`).join('');
+      input.value = String(parseInt(currentValue, 10) || 2);
+    } else if (colId === 'steps' || colId === 'expectedresults') {
+      input = document.createElement('textarea');
+      input.rows = Math.max(2, String(currentValue).split('\n').length);
+      input.value = currentValue;
+    } else {
+      input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentValue;
+    }
+    input.className = 'cell-edit-input';
+    cell.innerHTML = '';
+    cell.appendChild(input);
+    input.focus();
+    if (input.select) input.select();
+
+    let done = false;
+    const finish = async (commit) => {
+      if (done) return;
+      done = true;
+      input.removeEventListener('blur', onBlur);
+      cell.classList.remove('editing');
+      if (commit && String(input.value) !== String(currentValue)) {
+        const ok = await this.saveCaseField(row, colId, input.value);
+        if (ok) {
+          // 以快照为准重渲染：体检（空值/优先级）+ 当前页
+          await this.fetchHealth();
+          this.renderHealth();
+          await this.fetchPage();
+          return;
+        }
+      }
+      this.renderTable(); // 未提交/未变/失败 → 还原
+    };
+    const onBlur = () => finish(true);
+    input.addEventListener('blur', onBlur);
+    input.addEventListener('keydown', (e) => {
+      const multiline = input.tagName === 'TEXTAREA';
+      if (e.key === 'Enter' && (!multiline || e.ctrlKey || e.metaKey)) {
+        e.preventDefault(); finish(true);
+      } else if (e.key === 'Escape') {
+        e.preventDefault(); finish(false);
+      }
+    });
+  },
+
+  async saveCaseField(row, field, value) {
+    try {
+      const r = await fetch(
+        `/api/preview/${encodeURIComponent(this.filename)}/cases/${row}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ field, value }),
+        }
+      );
+      const body = await r.json();
+      if (!body.success) { alert(body.message || '保存失败'); return false; }
+      return true;
+    } catch (err) {
+      alert('保存失败，请重试');
+      return false;
+    }
   },
 
   async switchTemplate(templateId) {

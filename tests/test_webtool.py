@@ -348,3 +348,70 @@ def test_index_renders_real_stats_no_placeholder(client):
     assert "生成测试用例" in html
     # 统计卡 + 批量占位均已落地，首页不应再有「暂未上线」
     assert "暂未上线" not in html
+
+
+# ==================== 预览编辑持久化 ====================
+
+
+def _first_case(client, name):
+    return client.get(f"/api/preview/{name}/cases?page=1&page_size=10").get_json()[
+        "data"
+    ]["testcases"][0]
+
+
+def test_case_edit_persists_name(client):
+    name = _seed_upload(client, "edit1.xmind")
+    assert _first_case(client, name)  # 确有用例
+    r = client.patch(
+        f"/api/preview/{name}/cases/0",
+        json={"field": "name", "value": "编辑后的标题XYZ"},
+    )
+    assert r.status_code == 200 and r.get_json()["success"] is True
+    assert _first_case(client, name)["name"] == "编辑后的标题XYZ"
+
+
+def test_case_edit_steps_multiline(client):
+    name = _seed_upload(client, "edit2.xmind")
+    r = client.patch(
+        f"/api/preview/{name}/cases/0",
+        json={"field": "steps", "value": "第一步\n第二步\n第三步"},
+    )
+    assert r.status_code == 200
+    actions = [s["actions"] for s in _first_case(client, name)["steps"]]
+    assert actions[:3] == ["第一步", "第二步", "第三步"]
+
+
+def test_case_edit_reflects_in_export(client):
+    name = _seed_upload(client, "edit3.xmind")
+    client.patch(
+        f"/api/preview/{name}/cases/0",
+        json={"field": "name", "value": "导出应含此标题ABC"},
+    )
+    resp = client.post(f"/api/export/{name}/csv", json={})
+    assert resp.status_code == 200
+    assert "导出应含此标题ABC" in resp.get_data(as_text=True)
+
+
+def test_case_edit_rejects_bad_field(client):
+    name = _seed_upload(client, "edit4.xmind")
+    r = client.patch(
+        f"/api/preview/{name}/cases/0", json={"field": "evil", "value": "x"}
+    )
+    assert r.status_code == 400
+    assert r.get_json()["success"] is False
+
+
+def test_case_edit_rejects_out_of_range(client):
+    name = _seed_upload(client, "edit5.xmind")
+    r = client.patch(
+        f"/api/preview/{name}/cases/99999", json={"field": "name", "value": "x"}
+    )
+    assert r.status_code == 400
+
+
+def test_case_edit_rejects_csv(client):
+    name = _seed_csv(client, "edit.csv")
+    r = client.patch(
+        f"/api/preview/{name}/cases/0", json={"field": "name", "value": "x"}
+    )
+    assert r.status_code == 400

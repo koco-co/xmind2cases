@@ -418,6 +418,18 @@
 
 /* 编辑中状态 */
 td.editing { background: #FBF8F4; }
+.cell-edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--text);
+}
+textarea.cell-edit-input { resize: vertical; line-height: 1.5; }
 
 /* 列标题内联编辑 */
 .col-title-input {
