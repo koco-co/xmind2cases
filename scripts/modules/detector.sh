@@ -78,37 +78,36 @@ detect_python() {
         echo "$output" | sed -nE 's/.* ([0-9]+\.[0-9]+)\.?[0-9]*.*/\1/p' 2>/dev/null || echo ""
     }
 
-    # 检查 python3
-    if [[ -f "/usr/bin/python3" ]] || [[ -f "/usr/local/bin/python3" ]] || [[ -f "/opt/homebrew/bin/python3" ]]; then
-        local py3_path=""
-        if [[ -f "/opt/homebrew/bin/python3" ]]; then
-            py3_path="/opt/homebrew/bin/python3"
-        elif [[ -f "/usr/local/bin/python3" ]]; then
-            py3_path="/usr/local/bin/python3"
-        else
-            py3_path="/usr/bin/python3"
-        fi
+    # 优先检查 Python 3.12+ 路径
+    local python_paths=(
+        "$HOME/.local/bin/python3.12"
+        "$HOME/.local/bin/python3"
+        "/opt/homebrew/bin/python3.12"
+        "/usr/local/bin/python3.12"
+        "/opt/homebrew/bin/python3"
+        "/usr/local/bin/python3"
+        "/usr/bin/python3"
+    )
 
-        if [[ -x "$py3_path" ]]; then
-            local version_output=$("$py3_path" --version 2>&1 || echo "")
+    for py_path in "${python_paths[@]}"; do
+        if [[ -f "$py_path" ]] && [[ -x "$py_path" ]]; then
+            local version_output=$("$py_path" --version 2>&1 || echo "")
             local version=$(_extract_version "$version_output")
             if [[ -n "$version" ]]; then
-                echo "found|$py3_path|$version"
-                return 0
+                # 检查版本是否 >= 3.12
+                local major=$(echo "$version" | cut -d. -f1)
+                local minor=$(echo "$version" | cut -d. -f2)
+                if [[ "$major" -eq 3 ]] && [[ "$minor" -ge 12 ]]; then
+                    echo "found|$py_path|$version"
+                    return 0
+                fi
             fi
         fi
-    fi
+    done
 
-    # 检查 python
-    if [[ -f "/usr/bin/python" ]] || [[ -f "/usr/local/bin/python" ]]; then
-        local py_path=""
-        if [[ -f "/usr/local/bin/python" ]]; then
-            py_path="/usr/local/bin/python"
-        else
-            py_path="/usr/bin/python"
-        fi
-
-        if [[ -x "$py_path" ]]; then
+    # 如果没有找到 3.12+，检查任何可用的 Python 3
+    for py_path in "${python_paths[@]}"; do
+        if [[ -f "$py_path" ]] && [[ -x "$py_path" ]]; then
             local version_output=$("$py_path" --version 2>&1 || echo "")
             local version=$(_extract_version "$version_output")
             if [[ -n "$version" ]]; then
@@ -116,23 +115,7 @@ detect_python() {
                 return 0
             fi
         fi
-    fi
-
-    # 检查特定版本（仅文件检查，不执行命令）
-    if [[ -f "/opt/homebrew/bin/python3.12" ]] || [[ -f "/usr/local/bin/python3.12" ]]; then
-        echo "found|/opt/homebrew/bin/python3.12|3.12"
-        return 0
-    fi
-
-    if [[ -f "/opt/homebrew/bin/python3.11" ]] || [[ -f "/usr/local/bin/python3.11" ]]; then
-        echo "found|/opt/homebrew/bin/python3.11|3.11"
-        return 0
-    fi
-
-    if [[ -f "/opt/homebrew/bin/python3.10" ]] || [[ -f "/usr/local/bin/python3.10" ]]; then
-        echo "found|/opt/homebrew/bin/python3.10|3.10"
-        return 0
-    fi
+    done
 
     echo "not_found||"
     return 1

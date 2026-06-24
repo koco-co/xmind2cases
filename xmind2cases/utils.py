@@ -52,6 +52,7 @@ def normalize_xmind_data(xmind_dict: List[Dict[str, Any]]) -> List[Dict[str, Any
             topic["label"] = None
 
         # 确保其他必需字段存在
+        topic.setdefault("title", "")
         topic.setdefault("note", None)
         topic.setdefault("comment", None)
         topic.setdefault("link", None)
@@ -76,6 +77,35 @@ def normalize_xmind_data(xmind_dict: List[Dict[str, Any]]) -> List[Dict[str, Any
             sheet["topic"] = normalize_topic(sheet["topic"])
 
     return normalized_dict
+
+
+def _patch_xmindparser_compat() -> None:
+    """Patch xmindparser zenreader to handle XMind files with missing sheet titles.
+
+    Newer XMind versions (2026+) may omit the top-level ``title`` field on a
+    sheet in ``content.json``.  The upstream ``xmindparser`` library does a
+    hard ``sheet["title"]`` lookup which raises ``KeyError: 'title'`` for such
+    files.  This patch makes the lookup fall back to the root-topic title so
+    the file can still be parsed correctly.
+    """
+    try:
+        import xmindparser.zenreader as _zenreader
+        from xmindparser import config as _xmp_config
+
+        _original = _zenreader.sheet_to_dict
+
+        def _patched_sheet_to_dict(sheet: Dict[str, Any]) -> Dict[str, Any]:
+            if "title" not in sheet:
+                # Fall back to the root-topic title for files produced by
+                # newer XMind versions that omit the sheet-level title.
+                sheet = dict(sheet)
+                sheet["title"] = sheet.get("rootTopic", {}).get("title", "")
+            return _original(sheet)
+
+        _zenreader.sheet_to_dict = _patched_sheet_to_dict
+    except Exception:  # pragma: no cover – only fails if xmindparser is broken
+        pass
+
 
 
 def get_absolute_path(path: str) -> str:
@@ -114,6 +144,7 @@ def get_xmind_testsuites(xmind_file: str) -> List[TestSuite]:
     """
     from xmindparser import xmind_to_dict
 
+    _patch_xmindparser_compat()
     xmind_file = get_absolute_path(xmind_file)
 
     # 文件存在性检查

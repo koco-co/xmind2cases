@@ -37,6 +37,7 @@ dependencies = [
     "flask-sqlalchemy>=3.0.0",
     "arrow>=1.0.0",
     "click>=8.0.0",
+    "xmind>=1.2.0",
 ]
 
 [project.optional-dependencies]

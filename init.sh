@@ -18,6 +18,7 @@ DEV_MODE=false
 NO_WEBTOOL=false
 VERBOSE=false
 STATE_FILE="$SCRIPT_DIR/.init-state.json"
+USE_UV=true  # 默认使用 uv
 
 # 参数解析
 parse_arguments() {
@@ -72,6 +73,11 @@ xmind2cases 项目初始化脚本
   - Python 3.12 或更高版本
   - macOS/Linux，或 Windows (WSL/Git Bash)
 
+环境管理器选择:
+  脚本会检测 uv 是否已安装:
+  - 如果已安装 uv: 使用 uv 管理 Python 环境（推荐，更快速）
+  - 如果未安装 uv: 询问是否安装，或使用默认 pip + venv 环境
+
 模式说明:
   发布模式（默认）:
     - 只安装核心运行时依赖
@@ -101,20 +107,45 @@ check_uv() {
         setup_path "$(dirname "$uv_path")"
 
         print_success "uv 已安装: $uv_ver"
+        USE_UV=true
         return 0
     else
         print_warning "uv 未安装"
         echo ""
-        print_info "uv 是一个极速的 Python 包管理器，本项目需要它来管理依赖"
+        print_info "uv 是一个极速的 Python 包管理器，推荐使用它来管理依赖"
+        print_info "你也可以选择使用默认的 Python 环境来配置项目"
         echo ""
 
-        if install_uv_interactive; then
-            print_success "uv 安装完成"
-            return 0
-        else
-            print_error "uv 安装失败"
-            return 1
-        fi
+        echo "请选择环境配置方式:"
+        echo "  1) 安装 uv（推荐，更快的依赖管理）"
+        echo "  2) 使用默认 Python 环境（pip + venv）"
+        echo ""
+        read -p "请输入选项 (1/2) [默认: 1]: " choice
+
+        case "${choice:-1}" in
+            1)
+                print_info "正在安装 uv..."
+                if install_uv_interactive; then
+                    print_success "uv 安装完成"
+                    USE_UV=true
+                    return 0
+                else
+                    print_warning "uv 安装失败，将回退到默认 Python 环境"
+                    USE_UV=false
+                    return 0
+                fi
+                ;;
+            2)
+                print_info "将使用默认 Python 环境配置"
+                USE_UV=false
+                return 0
+                ;;
+            *)
+                print_warning "无效选项，将使用默认 Python 环境配置"
+                USE_UV=false
+                return 0
+                ;;
+        esac
     fi
 }
 
@@ -187,9 +218,9 @@ install_tools() {
     print_success "开发工具检查完成"
 }
 
-# 设置环境
-setup_environment() {
-    print_step "配置 Python 环境..."
+# 设置环境（使用 uv）
+setup_environment_uv() {
+    print_step "配置 Python 环境（使用 uv）..."
 
     # 创建虚拟环境
     if [[ ! -d ".venv" ]]; then
@@ -216,7 +247,76 @@ setup_environment() {
         print_info "发布模式：跳过 pre-commit hooks"
     fi
 
-    print_success "环境配置完成"
+    print_success "环境配置完成（uv）"
+}
+
+# 设置环境（使用默认 Python）
+setup_environment_pip() {
+    print_step "配置 Python 环境（使用 pip）..."
+
+    # 检查 Python 版本
+    local python_result=$(detect_python)
+    if [[ "$python_result" != found* ]]; then
+        print_error "未找到 Python 3.12+，请先安装 Python"
+        exit 1
+    fi
+
+    local python_path="${python_result#found|}"
+    python_path="${python_path%|*}"
+    print_info "使用 Python: $python_path"
+
+    # 创建虚拟环境
+    if [[ ! -d ".venv" ]]; then
+        print_info "创建虚拟环境..."
+        "$python_path" -m venv .venv
+    else
+        print_info "虚拟环境已存在"
+    fi
+
+    # 激活虚拟环境
+    print_info "激活虚拟环境..."
+    source .venv/bin/activate
+
+    # 升级 pip
+    print_info "升级 pip..."
+    pip install --upgrade pip -q
+
+    # 安装依赖
+    if [[ "$DEV_MODE" == "true" ]]; then
+        print_info "安装所有依赖（包括开发工具）..."
+        pip install -e ".[dev]" -q
+    else
+        print_info "安装核心依赖..."
+        pip install -e . -q
+    fi
+
+    # 安装 pre-commit hooks（仅开发模式）
+    if [[ "$DEV_MODE" == "true" ]]; then
+        print_info "安装 pre-commit hooks..."
+        if [[ -f ".pre-commit-config.yaml" ]]; then
+            if pre-commit install; then
+                print_success "pre-commit hooks 安装完成"
+            else
+                print_warning "pre-commit hooks 安装失败（非阻塞）"
+            fi
+        fi
+    else
+        print_info "发布模式：跳过 pre-commit hooks"
+    fi
+
+    # 取消激活（保持环境一致性）
+    deactivate 2>/dev/null || true
+
+    print_success "环境配置完成（pip）"
+}
+
+# 设置环境（根据 USE_UV 选择）
+setup_environment() {
+    if [[ "$USE_UV" == "true" ]]; then
+        setup_environment_uv
+    else
+        setup_environment_pip
+    fi
 }
 
 # 验证设置
@@ -231,20 +331,36 @@ verify_setup() {
     print_info "✓ 虚拟环境存在"
 
     # 检查核心依赖
-    if ! uv run python -c "import xmindparser, flask, arrow" 2>/dev/null; then
-        print_error "核心依赖未正确安装"
-        exit 1
+    if [[ "$USE_UV" == "true" ]]; then
+        if ! uv run python -c "import xmindparser, flask, arrow" 2>/dev/null; then
+            print_error "核心依赖未正确安装"
+            exit 1
+        fi
+    else
+        if ! .venv/bin/python -c "import xmindparser, flask, arrow" 2>/dev/null; then
+            print_error "核心依赖未正确安装"
+            exit 1
+        fi
     fi
     print_info "✓ 依赖已安装"
 
     # 仅在开发模式运行测试
     if [[ "$DEV_MODE" == "true" ]]; then
         print_info "运行测试套件..."
-        if uv run pytest tests/ -v --cov=xmind2cases --cov-report=term-missing; then
-            print_success "测试通过"
+        if [[ "$USE_UV" == "true" ]]; then
+            if uv run pytest tests/ -v --cov=xmind2cases --cov-report=term-missing; then
+                print_success "测试通过"
+            else
+                print_error "测试失败"
+                exit 1
+            fi
         else
-            print_error "测试失败"
-            exit 1
+            if .venv/bin/pytest tests/ -v --cov=xmind2cases --cov-report=term-missing; then
+                print_success "测试通过"
+            else
+                print_error "测试失败"
+                exit 1
+            fi
         fi
     else
         print_info "发布模式：跳过测试"
@@ -275,12 +391,26 @@ start_webtool() {
 
     # 设置 Flask 端口环境变量
     export FLASK_PORT="$PORT"
-    uv run python webtool/application.py
+
+    if [[ "$USE_UV" == "true" ]]; then
+        uv run python webtool/application.py
+    else
+        .venv/bin/python webtool/application.py
+    fi
 }
 
 # 开发流程
 dev_flow() {
     check_prerequisites
+
+    # 显示环境类型
+    if [[ "$USE_UV" == "true" ]]; then
+        print_info "环境管理器: uv（推荐）"
+    else
+        print_info "环境管理器: pip + venv（默认）"
+    fi
+    echo ""
+
     cleanup_project
     install_tools
     setup_environment
@@ -290,7 +420,11 @@ dev_flow() {
         start_webtool
     else
         print_success "环境配置完成！"
-        print_info "运行 'uv run python -m xmind2cases.cli webtool' 启动 Web 工具"
+        if [[ "$USE_UV" == "true" ]]; then
+            print_info "运行 'uv run python -m xmind2cases.cli webtool' 启动 Web 工具"
+        else
+            print_info "运行 '.venv/bin/python -m xmind2cases.cli webtool' 启动 Web 工具"
+        fi
     fi
 }
 

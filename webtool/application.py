@@ -33,6 +33,7 @@ from webtool.models import AppSetting, ColumnTemplate, DEFAULT_COLUMNS, Record, 
 from xmind2cases.testlink import xmind_to_testlink_xml_file
 from xmind2cases.utils import get_xmind_testcase_list, get_xmind_testsuites
 from xmind2cases.zentao import xmind_to_zentao_csv_file
+from xmind2cases.csv_to_xmind import zentao_csv_to_xmind_file
 
 here = os.path.abspath(os.path.dirname(__file__))
 log_file = os.path.join(here, "running.log")
@@ -62,7 +63,7 @@ werkzeug_logger.setLevel(logging.DEBUG)
 
 # Global variables
 UPLOAD_FOLDER = os.path.join(here, "uploads")
-ALLOWED_EXTENSIONS = ["xmind"]
+ALLOWED_EXTENSIONS = ["xmind", "csv"]
 DEBUG = True
 DATABASE = os.path.join(here, "data.db3")
 HOST = "0.0.0.0"
@@ -371,7 +372,7 @@ def check_file_name(name: str) -> str:
         name: Original filename.
 
     Returns:
-        Secured filename with .xmind extension.
+        Secured filename with original extension.
 
     Raises:
         AssertionError: If unable to parse the filename.
@@ -381,6 +382,11 @@ def check_file_name(name: str) -> str:
         # Only keep letters and digits from file name
         secured = re.sub(r"[^\w\d]+", "_", name)
         assert secured, f"Unable to parse file name: {name}!"
+
+    # Preserve original extension
+    _, ext = os.path.splitext(name)
+    if ext.lower() in (".xmind", ".csv"):
+        return secured if secured.endswith(ext) else secured + ext
     return secured + ".xmind"
 
 
@@ -399,7 +405,8 @@ def save_file(file: Any) -> Optional[str]:
 
         if exists(upload_to):
             timestamp = arrow.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{filename[:-6]}_{timestamp}.xmind"
+            base, ext = os.path.splitext(filename)
+            filename = f"{base}_{timestamp}{ext}"
             upload_to = join(app.config["UPLOAD_FOLDER"], filename)
 
         file.save(upload_to)
@@ -514,6 +521,39 @@ def _download_converted_file(
     )
 
 
+@app.route("/<filename>/to/xmind-from-csv")
+def download_xmind_from_csv(filename: str) -> Any:
+    """Convert an uploaded CSV file to XMind and download.
+
+    Query params:
+        sep: Repeatable. Each value is a delimiter used to split every
+            ``用例标题`` into nested topics (any one acts as a cut point).
+            Defaults to a single space when absent.
+        flat: ``1`` keeps titles unsplit (one topic per case).
+
+    Args:
+        filename: Name of the CSV file.
+
+    Returns:
+        XMind file download response or 404 error.
+    """
+    full_path = join(app.config["UPLOAD_FOLDER"], filename)
+    if not exists(full_path):
+        abort(404)
+
+    if request.args.get("flat") == "1":
+        delimiters: list = []
+    else:
+        seps = request.args.getlist("sep")
+        delimiters = seps if seps else [" "]
+
+    xmind_path = zentao_csv_to_xmind_file(full_path, delimiters=delimiters)
+    output_filename = os.path.basename(xmind_path)
+    return send_from_directory(
+        os.path.dirname(xmind_path), output_filename, as_attachment=True
+    )
+
+
 @app.route("/<filename>/to/testlink")
 def download_testlink_file(filename: str) -> Any:
     """Download TestLink XML file for an uploaded XMind file.
@@ -542,10 +582,10 @@ def download_zentao_file(filename: str) -> Any:
 
 @app.route("/preview/<path:filename>")
 def preview_file(filename: str) -> Any:
-    """Preview testcases from an uploaded XMind file.
+    """Preview testcases from an uploaded XMind or CSV file.
 
     Args:
-        filename: Name of the XMind file.
+        filename: Name of the file (XMind or CSV).
 
     Returns:
         Rendered preview template or 404 error.
@@ -555,10 +595,18 @@ def preview_file(filename: str) -> Any:
     if not exists(full_path):
         abort(404)
 
-    testsuites = get_xmind_testsuites(full_path)
-    suite_count = sum(len(suite.sub_suites or []) for suite in testsuites)
-    testcases = get_xmind_testcase_list(full_path)
-    total = len(testcases)
+    is_csv = filename.lower().endswith(".csv")
+    if is_csv:
+        from xmind2cases.csv_to_xmind import csv_to_testcase_dicts
+
+        testcases = csv_to_testcase_dicts(full_path)
+        total = len(testcases)
+        suite_count = len({tc.get("product", "") for tc in testcases})
+    else:
+        testsuites = get_xmind_testsuites(full_path)
+        suite_count = sum(len(suite.sub_suites or []) for suite in testsuites)
+        testcases = get_xmind_testcase_list(full_path)
+        total = len(testcases)
 
     return render_template(
         "preview.html",
@@ -566,6 +614,7 @@ def preview_file(filename: str) -> Any:
         suite=[],
         suite_count=suite_count,
         total=total,
+        is_csv=is_csv,
     )
 
 
@@ -575,6 +624,10 @@ def get_empty_cells(filename: str) -> Any:
     full_path = join(app.config["UPLOAD_FOLDER"], filename)
     if not exists(full_path):
         abort(404)
+
+    # CSV 预览不支持空值检测（有别于 XMind 解析后的字段）
+    if filename.lower().endswith(".csv"):
+        return jsonify({"success": True, "data": {"empty_cells": []}})
 
     template_id = request.args.get("template_id", type=int)
     if not template_id:
@@ -608,7 +661,7 @@ def get_empty_cells(filename: str) -> Any:
 
 @app.route("/api/preview/<path:filename>/cases", methods=["GET"])
 def get_preview_cases(filename: str) -> Any:
-    """分页获取预览用例数据"""
+    """分页获取预览用例数据（支持 XMind 和 CSV）"""
     full_path = join(app.config["UPLOAD_FOLDER"], filename)
 
     if not exists(full_path):
@@ -621,7 +674,13 @@ def get_preview_cases(filename: str) -> Any:
         page_size = 10
     page = max(1, page)
 
-    testcases = get_xmind_testcase_list(full_path)
+    if filename.lower().endswith(".csv"):
+        from xmind2cases.csv_to_xmind import csv_to_testcase_dicts
+
+        testcases = csv_to_testcase_dicts(full_path)
+    else:
+        testcases = get_xmind_testcase_list(full_path)
+
     total = len(testcases)
     start = (page - 1) * page_size
     end = start + page_size

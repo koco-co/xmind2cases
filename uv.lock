@@ -1035,14 +1035,24 @@ wheels = [
 ]
 
 [[package]]
+name = "xmind"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7c/8c/e13a82fa9b0394c0d58248196d7d51d7274407cdebc1df36b76034ab990d/XMind-1.2.0.tar.gz", hash = "sha256:7641a4adf1c0a33fe0d5f515d86deba28ef3b3bcfaff2cffb2d5f6520ffa976e", size = 27121, upload-time = "2019-01-10T11:09:50.535Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/04/3dfc179cb13ed20f1b6e592a883344893eb8973d417681b1ce82dd0f7367/XMind-1.2.0-py2.py3-none-any.whl", hash = "sha256:3dddc2db2cc404adf4e8d8e83f4d92e5eda5d94c468cecb047dcc99afc3a4f3d", size = 31936, upload-time = "2019-01-10T11:09:48.283Z" },
+]
+
+[[package]]
 name = "xmind2cases"
-version = "1.7.3"
+version = "1.8.0"
 source = { editable = "." }
 dependencies = [
     { name = "arrow" },
     { name = "click" },
     { name = "flask" },
     { name = "flask-sqlalchemy" },
+    { name = "xmind" },
     { name = "xmindparser" },
 ]
 
@@ -1076,6 +1086,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=5.0.0" },
+    { name = "xmind", specifier = ">=1.2.0" },
     { name = "xmindparser", specifier = ">=0.1.0" },
 ]
 provides-extras = ["dev"]

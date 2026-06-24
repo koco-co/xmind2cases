@@ -13,6 +13,7 @@ from xmind2cases.utils import (
     xmind_testcase_to_json_file,
 )
 from xmind2cases.zentao import xmind_to_zentao_csv_file
+from xmind2cases.csv_to_xmind import zentao_csv_to_xmind_file
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,6 +29,11 @@ USING_DOC = """
 
     Usage:
      xmind2cases [path_to_xmind_file] [-csv] [-xml] [-json]
+     xmind2cases [path_to_csv_file] [--sep ...] [--no-split]
+                                        => convert csv to xmind
+                                           (titles split by space by default;
+                                            --sep " " ">" to choose delimiters,
+                                            --no-split to keep titles flat)
      xmind2cases [webtool] [port_num]
 
     Example:
@@ -56,6 +62,8 @@ def cli_main() -> None:
     """
     if len(sys.argv) > 1 and sys.argv[1].endswith(".xmind"):
         _handle_xmind_conversion()
+    elif len(sys.argv) > 1 and sys.argv[1].endswith(".csv"):
+        _handle_csv_conversion()
     elif len(sys.argv) > 1 and sys.argv[1] == "webtool":
         _handle_webtool()
     else:
@@ -97,6 +105,34 @@ def _handle_xmind_conversion() -> None:
             testlink_xml_file,
             zentao_csv_file,
         )
+
+
+def _parse_csv_delimiters(args: list) -> list:
+    """Resolve title-split delimiters from CLI args.
+
+    ``--no-split`` disables splitting; ``--sep A B ...`` uses the following
+    tokens as delimiters; absent both, defaults to a single space.
+    """
+    if "--no-split" in args:
+        return []
+    if "--sep" in args:
+        idx = args.index("--sep")
+        seps = [a for a in args[idx + 1:] if not a.startswith("--")]
+        return seps if seps else [" "]
+    return [" "]
+
+
+def _handle_csv_conversion() -> None:
+    """Handle CSV to XMind conversion."""
+    csv_file = get_absolute_path(sys.argv[1])
+    delimiters = _parse_csv_delimiters(sys.argv[2:])
+    logging.info(
+        "Start converting CSV file: %s (delimiters=%r)", csv_file, delimiters
+    )
+    xmind_file = zentao_csv_to_xmind_file(csv_file, delimiters=delimiters)
+    logging.info(
+        "Convert CSV file to XMind file successfully: %s", xmind_file
+    )
 
 
 def _handle_webtool() -> None:

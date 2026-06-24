@@ -69,6 +69,16 @@
                         <div class="header-toolbar-value tabular-nums" id="total-count">{{ total }}</div>
                         <div class="header-toolbar-label" id="total-count-label">TestCases</div>
                     </div>
+                    {% if is_csv %}
+                    <button type="button" id="csv-download-btn"
+                            data-download-base="{{ url_for('download_xmind_from_csv', filename=name) }}"
+                            class="header-toolbar-item header-toolbar-btn header-toolbar-btn-csv">
+                        <svg class="header-toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        下载 XMind
+                    </button>
+                    {% else %}
                     <button type="button" class="header-toolbar-item header-toolbar-btn header-toolbar-btn-csv export-btn" data-type="csv">
                         <svg class="header-toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -88,6 +98,7 @@
                         </svg>
                         模版设置
                     </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -112,6 +123,68 @@
             </div>
         </div>
     </main>
+
+    {% if is_csv %}
+    <!-- 分隔符选择弹窗：把用例标题按所选符号拆成 XMind 层级 -->
+    <div id="sep-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" id="sep-modal-backdrop"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-slate-900">选择标题分隔符</h3>
+            <p class="mt-1 text-sm text-slate-500">用例标题将按勾选的符号拆成 XMind 层级，任一符号都作为切分点。</p>
+            <div class="mt-4 space-y-3">
+                <label class="flex items-center gap-3 text-sm text-slate-700">
+                    <input type="checkbox" class="sep-opt w-4 h-4 accent-accent-600" value=" " checked>
+                    <span>空格</span>
+                </label>
+                <label class="flex items-center gap-3 text-sm text-slate-700">
+                    <input type="checkbox" class="sep-opt w-4 h-4 accent-accent-600" value=">">
+                    <span><code class="px-1 bg-slate-100 rounded">&gt;</code> 大于号</span>
+                </label>
+                <label class="flex items-center gap-3 text-sm text-slate-700">
+                    <input type="checkbox" class="sep-opt w-4 h-4 accent-accent-600" value="-">
+                    <span><code class="px-1 bg-slate-100 rounded">-</code> 连字符</span>
+                </label>
+                <label class="flex items-center gap-3 text-sm text-slate-700">
+                    <span>自定义</span>
+                    <input type="text" id="sep-custom" maxlength="10" placeholder="如 :: 或 |"
+                           class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500">
+                </label>
+            </div>
+            <p class="mt-3 text-xs text-slate-400">不勾选任何符号则不拆分，每条用例直接挂在模块下。</p>
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" id="sep-cancel"
+                        class="px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50">取消</button>
+                <button type="button" id="sep-confirm"
+                        class="px-4 py-2 text-sm rounded-lg bg-accent-600 text-white hover:bg-accent-700">下载</button>
+            </div>
+        </div>
+    </div>
+    <script>
+      (function () {
+        const btn = document.getElementById('csv-download-btn');
+        const modal = document.getElementById('sep-modal');
+        if (!btn || !modal) return;
+        const base = btn.dataset.downloadBase;
+        const close = () => modal.classList.add('hidden');
+        btn.addEventListener('click', () => modal.classList.remove('hidden'));
+        document.getElementById('sep-cancel').addEventListener('click', close);
+        document.getElementById('sep-modal-backdrop').addEventListener('click', close);
+        document.getElementById('sep-confirm').addEventListener('click', () => {
+          const seps = Array.from(document.querySelectorAll('.sep-opt:checked')).map(c => c.value);
+          const custom = document.getElementById('sep-custom').value;
+          if (custom) seps.push(custom);
+          let url = base;
+          if (seps.length === 0) {
+            url += '?flat=1';
+          } else {
+            url += '?' + seps.map(s => 'sep=' + encodeURIComponent(s)).join('&');
+          }
+          close();
+          window.location = url;
+        });
+      })();
+    </script>
+    {% endif %}
 
     <footer class="mt-12 text-center text-sm text-slate-400 pb-8">
         <a href="{{ url_for('static', filename='guide/index.html') }}" target="_blank" class="hover:text-slate-600">使用指南</a>

@@ -39,13 +39,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             const file = files[0];
-            if (file.name.toLowerCase().endsWith('.xmind')) {
+            const ext = file.name.toLowerCase().split('.').pop();
+            if (ext === 'xmind' || ext === 'csv') {
                 fileInput.files = files;
                 fileLabel.textContent = '已选择: ' + file.name;
                 selectedFileName.textContent = file.name;
                 fileInfo.classList.remove('hidden');
             } else {
-                alert('请上传 .xmind 格式的文件');
+                alert('请上传 .xmind 或 .csv 格式的文件');
             }
         }
     });

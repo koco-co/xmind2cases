@@ -205,3 +205,138 @@ def test_get_xmind_testsuites_invalid_format():
             get_xmind_testsuites(temp_file)
     finally:
         os.unlink(temp_file)
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: XMind files with missing sheet-level title (新版 XMind 2026+)
+# ---------------------------------------------------------------------------
+
+def _make_xmind_zen_bytes(sheets_json: str) -> bytes:
+    """Build a minimal in-memory XMind Zen (ZIP) file from a sheets JSON string."""
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("content.json", sheets_json)
+        zf.writestr("metadata.json", '{"creator":{"name":"test","version":"1.0"}}')
+        zf.writestr("manifest.json", '{"file-entries":{"content.json":{}}}')
+    buf.seek(0)
+    return buf.read()
+
+
+def test_normalize_topic_adds_default_title():
+    """normalize_topic should add an empty-string title when the key is missing."""
+    input_data = [
+        {
+            "title": "Sheet 1",
+            "topic": {
+                "title": "Root",
+                "topics": [
+                    {
+                        # No "title" key at all — should be defaulted to ""
+                        "markers": [],
+                    }
+                ],
+            },
+        }
+    ]
+    result = normalize_xmind_data(input_data)
+    child = result[0]["topic"]["topics"][0]
+    assert "title" in child
+    assert child["title"] == ""
+
+
+def test_xmindparser_compat_patch_missing_sheet_title(tmp_path):
+    """get_xmind_testsuites should parse files whose sheets lack a title key.
+
+    This reproduces the exact failure mode of 20260322-信永中和测试用例.xmind
+    where the sheet object in content.json has no 'title' field.
+    """
+    import json
+
+    # Build a minimal XMind Zen file whose sheet has NO 'title' field but
+    # whose rootTopic has a title — exactly the new XMind 2026+ format.
+    sheets = [
+        {
+            "id": "sheet-001",
+            "class": "sheet",
+            # 'title' intentionally omitted
+            "rootTopic": {
+                "id": "topic-001",
+                "class": "topic",
+                "title": "产品名称",
+                "children": {
+                    "attached": [
+                        {
+                            "id": "topic-002",
+                            "title": "模块A",
+                            "children": {
+                                "attached": [
+                                    {
+                                        "id": "topic-003",
+                                        "title": "测试用例1",
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        }
+    ]
+
+    xmind_file = tmp_path / "no_sheet_title.xmind"
+    xmind_file.write_bytes(_make_xmind_zen_bytes(json.dumps(sheets)))
+
+    from xmind2cases.utils import get_xmind_testsuites
+
+    # Should not raise; previously raised ValueError("...Error: 'title'")
+    suites = get_xmind_testsuites(str(xmind_file))
+    assert len(suites) >= 1
+    # The suite name should come from rootTopic.title
+    assert suites[0].name == "产品名称"
+
+
+def test_xmindparser_compat_patch_with_sheet_title(tmp_path):
+    """get_xmind_testsuites should still work normally when sheet title IS present."""
+    import json
+
+    sheets = [
+        {
+            "id": "sheet-001",
+            "class": "sheet",
+            "title": "画布 1",
+            "rootTopic": {
+                "id": "topic-001",
+                "class": "topic",
+                "title": "产品名称",
+                "children": {
+                    "attached": [
+                        {
+                            "id": "topic-002",
+                            "title": "模块A",
+                            "children": {
+                                "attached": [
+                                    {
+                                        "id": "topic-003",
+                                        "title": "测试用例1",
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        }
+    ]
+
+    xmind_file = tmp_path / "with_sheet_title.xmind"
+    xmind_file.write_bytes(_make_xmind_zen_bytes(json.dumps(sheets)))
+
+    from xmind2cases.utils import get_xmind_testsuites
+
+    suites = get_xmind_testsuites(str(xmind_file))
+    assert len(suites) >= 1
+    assert suites[0].name == "产品名称"
+
