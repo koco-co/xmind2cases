@@ -9,9 +9,17 @@ https://www.zentao.net/book/zentaopmshelp/243.mhtml
 import csv
 import logging
 import os
+import re
 from typing import Any, Dict, List, Tuple
 
 from xmind2cases.utils import get_absolute_path, get_xmind_testcase_list
+
+_REQUIREMENT_RE = re.compile(r"\(#\d+\)")
+
+
+def _normalize_fullwidth_parens(text: str) -> str:
+    """将全角括号（ ）替换为半角括号 ( )。"""
+    return (text or "").replace("（", "(").replace("）", ")")
 
 
 def xmind_to_zentao_csv_file(xmind_file: str) -> str:
@@ -29,6 +37,7 @@ def xmind_to_zentao_csv_file(xmind_file: str) -> str:
 
     fileheader = [
         "所属模块",
+        "相关需求",
         "用例标题",
         "前置条件",
         "步骤",
@@ -70,6 +79,7 @@ def gen_a_testcase_row(testcase_dict: Dict[str, Any]) -> List[str]:
         List of strings representing a CSV row.
     """
     case_module = gen_case_module(testcase_dict["suite"])
+    case_requirement = testcase_dict.get("requirements", "")
     case_title = testcase_dict["name"]
     case_precondition = testcase_dict["preconditions"].replace("\n", "<br>")
     case_step, case_expected_result = gen_case_step_and_expected_result(
@@ -81,11 +91,12 @@ def gen_a_testcase_row(testcase_dict: Dict[str, Any]) -> List[str]:
     case_apply_phase = "功能测试阶段"
 
     return [
-        case_module,
-        case_title,
-        case_precondition,
-        case_step,
-        case_expected_result,
+        _normalize_fullwidth_parens(case_module),
+        _normalize_fullwidth_parens(case_requirement),
+        _normalize_fullwidth_parens(case_title),
+        _normalize_fullwidth_parens(case_precondition),
+        _normalize_fullwidth_parens(case_step),
+        _normalize_fullwidth_parens(case_expected_result),
         case_keyword,
         case_priority,
         case_type,
@@ -94,19 +105,24 @@ def gen_a_testcase_row(testcase_dict: Dict[str, Any]) -> List[str]:
 
 
 def gen_case_module(module_name: str) -> str:
-    """Generate case module name, normalizing parentheses.
+    """Generate case module name, keeping only the requirement ID.
+
+    The L1 topic title is typically ``xx(#12345)``; only ``(#12345)`` is kept
+    in the CSV. Titles without a parenthesized requirement ID are kept whole.
 
     Args:
         module_name: Original module name.
 
     Returns:
-        Normalized module name, or '/' if empty.
+        Simplified module name, or '/' if empty.
     """
-    if module_name:
-        module_name = module_name.replace("（", "(").replace("）", ")")
-    else:
-        module_name = "/"
-    return module_name
+    if not module_name:
+        return "/"
+    normalized = _normalize_fullwidth_parens(module_name)
+    match = _REQUIREMENT_RE.search(normalized)
+    if match:
+        return match.group(0)
+    return normalized
 
 
 def gen_case_step_and_expected_result(steps: List[Dict[str, Any]]) -> Tuple[str, str]:

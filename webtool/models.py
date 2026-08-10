@@ -7,7 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-# 默认列配置：所属模块、用例标题、前置条件、步骤、预期、优先级
+# 默认列配置：所属模块、相关需求、用例标题、前置条件、步骤、预期、优先级
 DEFAULT_COLUMNS = [
     {
         "id": "suite",
@@ -18,9 +18,17 @@ DEFAULT_COLUMNS = [
         "empty_check": False,
     },
     {
+        "id": "requirements",
+        "name": "相关需求",
+        "order": 2,
+        "is_custom": False,
+        "rich_text_break": False,
+        "empty_check": False,
+    },
+    {
         "id": "name",
         "name": "用例标题",
-        "order": 2,
+        "order": 3,
         "is_custom": False,
         "rich_text_break": False,
         "empty_check": False,
@@ -28,7 +36,7 @@ DEFAULT_COLUMNS = [
     {
         "id": "preconditions",
         "name": "前置条件",
-        "order": 3,
+        "order": 4,
         "is_custom": False,
         "rich_text_break": False,
         "empty_check": False,
@@ -36,7 +44,7 @@ DEFAULT_COLUMNS = [
     {
         "id": "steps",
         "name": "步骤",
-        "order": 4,
+        "order": 5,
         "is_custom": False,
         "rich_text_break": False,
         "empty_check": False,
@@ -44,7 +52,7 @@ DEFAULT_COLUMNS = [
     {
         "id": "expectedresults",
         "name": "预期",
-        "order": 5,
+        "order": 6,
         "is_custom": False,
         "rich_text_break": False,
         "empty_check": False,
@@ -52,8 +60,28 @@ DEFAULT_COLUMNS = [
     {
         "id": "importance",
         "name": "优先级",
-        "order": 6,
+        "order": 7,
         "is_custom": False,
+        "rich_text_break": False,
+        "empty_check": False,
+    },
+    {
+        "id": "custom_1",
+        "name": "用例类型",
+        "order": 8,
+        "is_custom": True,
+        "default_value": "功能测试",
+        "values": {},
+        "rich_text_break": False,
+        "empty_check": False,
+    },
+    {
+        "id": "custom_2",
+        "name": "适用阶段",
+        "order": 9,
+        "is_custom": True,
+        "default_value": "功能测试阶段",
+        "values": {},
         "rich_text_break": False,
         "empty_check": False,
     },

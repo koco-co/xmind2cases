@@ -472,3 +472,168 @@ def test_diff_rejects_csv(client):
     r = client.get(f"/api/preview/{name}/diff")
     assert r.status_code == 400
     assert r.get_json()["success"] is False
+
+
+# ==================== 相关需求列（内置 requirements） ====================
+
+
+def test_migrate_custom_requirements_column():
+    """自定义「相关需求」列迁移为内置 requirements 列（保留位次、其余列不动）"""
+    import json
+
+    with appmod.app.app_context():
+        tpl = appmod.ColumnTemplate(
+            name="迁移测试",
+            columns_json=json.dumps(
+                [
+                    {"id": "suite", "name": "所属模块", "order": 1, "is_custom": False},
+                    {
+                        "id": "custom_9",
+                        "name": "相关需求",
+                        "order": 2,
+                        "is_custom": True,
+                        "default_value": "(#15911)",
+                        "values": {"0": "(#15911)"},
+                    },
+                    {"id": "name", "name": "用例标题", "order": 5, "is_custom": False},
+                ],
+                ensure_ascii=False,
+            ),
+        )
+        appmod.db.session.add(tpl)
+        appmod.db.session.commit()
+
+        appmod._migrate_requirements_column()
+
+        tpl = appmod.ColumnTemplate.query.filter_by(name="迁移测试").first()
+        cols = tpl.columns
+        assert cols[0]["id"] == "suite"
+        assert cols[1]["id"] == "requirements"
+        assert cols[1]["name"] == "相关需求"
+        assert cols[1]["is_custom"] is False
+        assert cols[1]["order"] == 2  # 保留原列位次
+        assert "values" not in cols[1]  # 逐行硬编码值被丢弃
+        assert cols[2]["id"] == "name"
+        # 无自定义相关需求列的模版不受影响
+        other = appmod.ColumnTemplate(name="其他", columns_json="[]")
+        appmod.db.session.add(other)
+        appmod.db.session.commit()
+        appmod._migrate_requirements_column()
+        assert appmod.ColumnTemplate.query.filter_by(name="其他").first().columns == []
+
+
+def test_export_csv_requirements_and_fullwidth_parens():
+    """导出 CSV：相关需求列取值 + 全角括号统一转半角"""
+    cols = [
+        {"id": "suite", "name": "所属模块", "order": 1, "is_custom": False},
+        {"id": "requirements", "name": "相关需求", "order": 2, "is_custom": False},
+        {"id": "name", "name": "用例标题", "order": 3, "is_custom": False},
+    ]
+    testcases = [
+        {
+            "suite": "模块（自动化）(#10629)",
+            "requirements": "(#15889)",
+            "name": "验证（登录）",
+            "steps": [{"actions": "1）点（确定）", "expectedresults": "2）成功）"}],
+        }
+    ]
+    content = appmod.generate_csv_with_columns(testcases, cols)
+    import csv
+    import io
+
+    rows = list(csv.reader(io.StringIO(content)))
+    assert rows[0] == ["所属模块", "相关需求", "用例标题"]
+    assert rows[1][0] == "(#10629)"
+    assert rows[1][1] == "(#15889)"
+    assert rows[1][2] == "验证(登录)"
+    assert "（" not in content and "）" not in content
+
+
+def test_get_column_value_simplifies_suite_and_reads_requirements():
+    with appmod.app.app_context():
+        col_suite = {"id": "suite", "is_custom": False}
+        col_req = {"id": "requirements", "is_custom": False}
+        tc = {"suite": "模块(#10629)", "requirements": "(#15889)"}
+        assert appmod.get_column_value(tc, col_suite, 0) == "(#10629)"
+        assert appmod.get_column_value(tc, col_req, 0) == "(#15889)"
+
+
+def test_get_cases_backfills_requirements_from_stale_snapshot(client):
+    """升级前的旧快照缺 requirements 字段，读取时按行序回填且不覆盖既有编辑"""
+    import json
+
+    from webtool.models import CaseSnapshot
+
+    name = _seed_upload(client, "stale.xmind")
+    app = appmod.app
+    with app.app_context():
+        fresh = appmod.get_xmind_testcase_list(
+            os.path.join(app.config["UPLOAD_FOLDER"], name)
+        )
+        # 构造缺 requirements 的旧快照（模拟升级前落库）
+        stale = [{k: v for k, v in tc.items() if k != "requirements"} for tc in fresh]
+        appmod.db.session.add(
+            CaseSnapshot(
+                filename=name, cases_json=json.dumps(stale, ensure_ascii=False)
+            )
+        )
+        appmod.db.session.commit()
+
+        cases = appmod.get_cases(name)
+        assert all("requirements" in tc for tc in cases)
+        assert [tc["requirements"] for tc in cases] == [
+            tc.get("requirements", "") for tc in fresh
+        ]
+
+
+def test_migrate_default_custom_columns_appends_case_type_and_stage():
+    """缺失「用例类型」「适用阶段」的模版，初始化迁移自动补上自定义列"""
+    import json
+
+    with appmod.app.app_context():
+        tpl = appmod.ColumnTemplate(
+            name="迁移测试2",
+            columns_json=json.dumps(
+                [
+                    {"id": "suite", "name": "所属模块", "order": 1, "is_custom": False},
+                    {"id": "name", "name": "用例标题", "order": 2, "is_custom": False},
+                ],
+                ensure_ascii=False,
+            ),
+        )
+        appmod.db.session.add(tpl)
+        appmod.db.session.commit()
+
+        appmod._migrate_default_custom_columns()
+
+        tpl = appmod.ColumnTemplate.query.filter_by(name="迁移测试2").first()
+        cols = tpl.columns
+        assert len(cols) == 4
+        case_type = cols[2]
+        stage = cols[3]
+        assert case_type["name"] == "用例类型"
+        assert case_type["is_custom"] is True
+        assert case_type["default_value"] == "功能测试"
+        assert case_type["order"] == 3
+        assert stage["name"] == "适用阶段"
+        assert stage["is_custom"] is True
+        assert stage["default_value"] == "功能测试阶段"
+        assert stage["order"] == 4
+        # 自定义列 id 不冲突
+        assert case_type["id"] != stage["id"]
+        # 已含这两列的模版不被改动
+        existing = appmod.ColumnTemplate(
+            name="迁移测试3",
+            columns_json=json.dumps(
+                [
+                    {"id": "custom_1", "name": "用例类型", "is_custom": True},
+                    {"id": "custom_2", "name": "适用阶段", "is_custom": True},
+                ],
+                ensure_ascii=False,
+            ),
+        )
+        appmod.db.session.add(existing)
+        appmod.db.session.commit()
+        before = json.dumps(existing.columns, ensure_ascii=False)
+        appmod._migrate_default_custom_columns()
+        assert json.dumps(existing.columns, ensure_ascii=False) == before

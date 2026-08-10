@@ -52,3 +52,91 @@ def test_convert_to_csv(test_xmind):
     # 清理生成的 CSV 文件
     if os.path.exists(csv_file):
         os.remove(csv_file)
+
+
+def test_zentao_csv_header_has_requirements_column(test_xmind):
+    """CSV 表头在所属模块后紧跟相关需求"""
+    from xmind2cases.zentao import xmind_to_zentao_csv_file
+
+    import csv
+
+    csv_file = xmind_to_zentao_csv_file(test_xmind)
+    try:
+        with open(csv_file, encoding="utf-8") as f:
+            header = next(csv.reader(f))
+        assert header[0] == "所属模块"
+        assert header[1] == "相关需求"
+        assert header[2] == "用例标题"
+    finally:
+        if os.path.exists(csv_file):
+            os.remove(csv_file)
+
+
+def test_parser_attaches_requirements_from_l1_labels():
+    """相关需求默认取自 L1 节点的 labels 标签 (#xxxxx)"""
+    from xmind2cases.parser import xmind_to_testsuites
+
+    content = [
+        {
+            "title": "产品(#23)",
+            "topic": {
+                "title": "产品(#23)",
+                "note": None,
+                "topics": [
+                    {
+                        "title": "模块(#10629)",
+                        "note": None,
+                        "labels": ["(#15889)"],
+                        "topics": [
+                            {
+                                "title": "用例1",
+                                "markers": ["priority-2"],
+                                "topics": [],
+                            },
+                        ],
+                    },
+                ],
+            },
+        }
+    ]
+    suites = xmind_to_testsuites(content)
+    cases = suites[0].sub_suites[0].testcase_list
+    assert cases[0].requirements == "(#15889)"
+
+
+def test_gen_case_module_keeps_only_requirement_id():
+    """所属模块简写为标题内的需求编号 (#xxxxx)"""
+    from xmind2cases.zentao import gen_case_module
+
+    assert gen_case_module("模块(#10629)") == "(#10629)"
+    assert gen_case_module("模块（自动化）(#12345)") == "(#12345)"
+    assert gen_case_module("无编号模块") == "无编号模块"
+    assert gen_case_module("") == "/"
+
+
+def test_zentao_row_requirements_and_fullwidth_parens():
+    """行生成：相关需求列 + 全角括号统一转半角"""
+    from xmind2cases.zentao import gen_a_testcase_row
+
+    tc = {
+        "suite": "模块（X）(#12345)",
+        "name": "验证（登录）功能",
+        "preconditions": "前置（条件）",
+        "importance": 1,
+        "execution_type": 1,
+        "requirements": "(#15889)",
+        "steps": [
+            {
+                "step_number": 1,
+                "actions": "1）输入账号（admin）",
+                "expectedresults": "2）登录成功）",
+            },
+        ],
+    }
+    row = gen_a_testcase_row(tc)
+    assert row[0] == "(#12345)"  # 所属模块简写
+    assert row[1] == "(#15889)"  # 相关需求
+    assert row[2] == "验证(登录)功能"  # 标题全角→半角
+    assert row[3] == "前置(条件)"
+    assert row[4] == "1. 1)输入账号(admin)\n"
+    assert "（" not in "".join(row) and "）" not in "".join(row)

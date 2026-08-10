@@ -40,7 +40,7 @@ from webtool.models import (
 )
 from xmind2cases.testlink import xmind_to_testlink_xml_file
 from xmind2cases.utils import get_xmind_testcase_list, get_xmind_testsuites
-from xmind2cases.zentao import xmind_to_zentao_csv_file
+from xmind2cases.zentao import gen_case_module, xmind_to_zentao_csv_file
 from xmind2cases.csv_to_xmind import zentao_csv_to_xmind_file
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -143,6 +143,20 @@ def init() -> None:
                     AppSetting(key="last_export_template_id", value=old_setting.value)
                 )
                 db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        # 迁移：自定义「相关需求」列 → 内置 requirements 列（自动读 L1 tags）。
+        # 旧做法是在模版里手工填一个同名自定义列（值逐行硬编码），现改为内置
+        # 列自动从 L1 节点标签取值；保留原列位次，其余模版不动。
+        try:
+            _migrate_requirements_column()
+        except Exception:
+            db.session.rollback()
+
+        # 迁移：为缺失的模版补上「用例类型」「适用阶段」自定义列（可自由删除）。
+        try:
+            _migrate_default_custom_columns()
         except Exception:
             db.session.rollback()
 
@@ -259,7 +273,9 @@ def get_column_value(testcase: dict, column: dict, row_index: int) -> str:
         return values.get(str(row_index), default_value)
 
     if col_id == "suite":
-        return testcase.get("suite", "")
+        return gen_case_module(testcase.get("suite", ""))
+    if col_id == "requirements":
+        return testcase.get("requirements", "")
     if col_id == "name":
         return testcase.get("name", "")
     if col_id == "preconditions":
@@ -293,6 +309,91 @@ def _format_cell_for_export(value: str, column: dict) -> str:
     return value
 
 
+def _normalize_fullwidth_parens(value: str) -> str:
+    """将全角括号（ ）替换为半角括号 ( )。"""
+    if not value:
+        return value
+    return value.replace("（", "(").replace("）", ")")
+
+
+def _migrate_requirements_column() -> None:
+    """将模版中的自定义「相关需求」列替换为内置 requirements 列。
+
+    旧做法是手工填一个同名自定义列（值逐行硬编码）；新做法是内置列自动从
+    L1 节点标签取值。替换后保留原列位次，其余模版列不动。
+    """
+    for tpl in ColumnTemplate.query.all():
+        cols = tpl.columns
+        changed = False
+        new_cols = []
+        for col in cols:
+            if col.get("is_custom") and col.get("name") == "相关需求":
+                new_cols.append(
+                    {
+                        "id": "requirements",
+                        "name": "相关需求",
+                        "order": col.get("order", 2),
+                        "is_custom": False,
+                        "rich_text_break": False,
+                        "empty_check": False,
+                    }
+                )
+                changed = True
+            else:
+                new_cols.append(col)
+        if changed:
+            tpl.columns = new_cols
+            db.session.commit()
+
+
+_CUSTOM_ID_RE = re.compile(r"^custom_(\d+)$")
+
+
+def _next_custom_id(existing_ids) -> str:
+    """生成下一个可用的 ``custom_N`` 列 id，避免与现有列冲突。"""
+    nums = []
+    for cid in existing_ids:
+        match = _CUSTOM_ID_RE.match(str(cid))
+        if match:
+            nums.append(int(match.group(1)))
+    return f"custom_{max(nums, default=0) + 1}"
+
+
+def _migrate_default_custom_columns() -> None:
+    """为缺失的模版补上「用例类型」「适用阶段」自定义列。
+
+    这两列按用户配置以自定义列形式存在（可自由删除），初始化时自动补到
+    没有同名列的模版末尾，位次接在现有列之后。
+    """
+    for tpl in ColumnTemplate.query.all():
+        cols = tpl.columns
+        names = {c.get("name") for c in cols}
+        to_add = []
+        if "用例类型" not in names:
+            to_add.append({"name": "用例类型", "default": "功能测试"})
+        if "适用阶段" not in names:
+            to_add.append({"name": "适用阶段", "default": "功能测试阶段"})
+        if not to_add:
+            continue
+        max_order = max((c.get("order") or 0) for c in cols) if cols else 0
+        existing_ids = {c.get("id") for c in cols}
+        for i, item in enumerate(to_add, 1):
+            col = {
+                "id": _next_custom_id(existing_ids),
+                "name": item["name"],
+                "is_custom": True,
+                "default_value": item["default"],
+                "values": {},
+                "order": max_order + i,
+                "rich_text_break": False,
+                "empty_check": False,
+            }
+            existing_ids.add(col["id"])
+            cols.append(col)
+        tpl.columns = cols
+        db.session.commit()
+
+
 def generate_csv_with_columns(testcases: list, columns: list) -> str:
     """根据列配置生成 CSV 内容（不含序号列）"""
     output = io.StringIO()
@@ -304,7 +405,9 @@ def generate_csv_with_columns(testcases: list, columns: list) -> str:
 
     for row_index, tc in enumerate(testcases):
         row = [
-            _format_cell_for_export(get_column_value(tc, c, row_index), c)
+            _normalize_fullwidth_parens(
+                _format_cell_for_export(get_column_value(tc, c, row_index), c)
+            )
             for c in visible_columns
         ]
         writer.writerow(row)
@@ -725,7 +828,20 @@ def get_cases(filename: str) -> list:
         return csv_to_testcase_dicts(full_path)
     snap = CaseSnapshot.query.filter_by(filename=filename).first()
     if snap:
-        return json.loads(snap.cases_json)
+        cases = json.loads(snap.cases_json)
+        # 兼容旧快照：补齐缺失的 requirements 字段（按行序对应，不覆盖既有编辑）。
+        # 升级前的快照不含该字段，导出相关需求会为空；此处一次性回填并持久化。
+        if any("requirements" not in tc for tc in cases):
+            if os.path.exists(full_path):
+                try:
+                    fresh = get_xmind_testcase_list(full_path)
+                    for tc, src in zip(cases, fresh):
+                        if "requirements" not in tc:
+                            tc["requirements"] = src.get("requirements", "")
+                    _save_snapshot(filename, cases)
+                except Exception:  # noqa: BLE001 — 回填失败不阻断读取
+                    pass
+        return cases
     cases = get_xmind_testcase_list(full_path)
     _save_snapshot(filename, cases)
     return cases

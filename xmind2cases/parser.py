@@ -3,6 +3,7 @@
 """Parser for converting XMind content to test suite structures."""
 
 import logging
+import re
 from typing import Any, Dict, Generator, List, Optional
 
 from xmind2cases.metadata import TestCase, TestStep, TestSuite
@@ -14,6 +15,25 @@ config: Dict[str, Any] = {
     "summary_sep": "\n----\n",
     "ignore_char": "#!！",
 }
+
+_REQUIREMENT_RE = re.compile(r"\(#\d+\)")
+
+
+def gen_requirements(labels: Optional[List[str]]) -> str:
+    """Extract the first ``(#xxxxx)`` requirement tag from a topic's labels.
+
+    Labels on the L1 node encode the related requirement, e.g. ``(#15889)``.
+    Returns ``""`` when no label carries a parenthesized requirement ID.
+    """
+    if isinstance(labels, str):
+        labels = [labels]
+    for label in labels or []:
+        if not isinstance(label, str):
+            continue
+        match = _REQUIREMENT_RE.search(label)
+        if match:
+            return match.group(0)
+    return ""
 
 
 def xmind_to_testsuites(xmind_content_dict: List[Dict[str, Any]]) -> List[TestSuite]:
@@ -142,10 +162,12 @@ def parse_testsuite(suite_dict: Dict[str, Any]) -> TestSuite:
     testsuite.name = suite_dict["title"]
     testsuite.details = suite_dict["note"]
     testsuite.testcase_list = []
+    requirements = gen_requirements(suite_dict.get("labels"))
     logging.debug("start to parse a testsuite: %s", testsuite.name)
 
     for cases_dict in suite_dict.get("topics", []):
         for case in recurse_parse_testcase(cases_dict):
+            case.requirements = requirements
             testsuite.testcase_list.append(case)
 
     logging.debug(

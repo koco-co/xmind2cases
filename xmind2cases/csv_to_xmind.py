@@ -83,6 +83,7 @@ def _module_path_parts(module_path: str) -> List[str]:
 # XMind JSON generation  (content.json — XMind Zen format)
 # ---------------------------------------------------------------------------
 
+
 def _new_id() -> str:
     """Generate a short unique ID suitable for XMind topics."""
     return uuid.uuid4().hex[:24]
@@ -246,6 +247,7 @@ def _add_testcase_topic(
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def zentao_csv_to_xmind_file(
     csv_path: str,
     output_path: Optional[str] = None,
@@ -342,19 +344,23 @@ def zentao_csv_to_xmind_file(
         zf.writestr("content.json", json.dumps(sheets, ensure_ascii=False))
         zf.writestr(
             "metadata.json",
-            json.dumps({
-                "creator": {"name": "xmind2cases", "version": "2.0"},
-                "dataStructureVersion": "3",
-            }),
+            json.dumps(
+                {
+                    "creator": {"name": "xmind2cases", "version": "2.0"},
+                    "dataStructureVersion": "3",
+                }
+            ),
         )
         zf.writestr(
             "manifest.json",
-            json.dumps({
-                "file-entries": {
-                    "content.json": {},
-                    "metadata.json": {},
-                },
-            }),
+            json.dumps(
+                {
+                    "file-entries": {
+                        "content.json": {},
+                        "metadata.json": {},
+                    },
+                }
+            ),
         )
 
     logger.info(
@@ -428,14 +434,17 @@ def csv_to_testcase_dicts(csv_path: str) -> List[Dict[str, Any]]:
         case_type = (row.get("用例类型") or "").strip()
         execution_type = 2 if case_type == "接口测试" else 1
 
-        result.append({
-            "name": title,
-            "suite": module,
-            "product": product,
-            "preconditions": preconditions or "无",
-            "steps": steps,
-            "importance": importance,
-            "execution_type": execution_type,
-        })
+        result.append(
+            {
+                "name": title,
+                "suite": module,
+                "product": product,
+                "preconditions": preconditions or "无",
+                "steps": steps,
+                "importance": importance,
+                "execution_type": execution_type,
+                "requirements": (row.get("相关需求") or "").strip(),
+            }
+        )
 
     return result

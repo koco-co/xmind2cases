@@ -8,11 +8,14 @@
 
 const DEFAULT_COLUMNS = [
   { id: 'suite', name: '所属模块', order: 1, is_custom: false, rich_text_break: false, empty_check: false },
-  { id: 'name', name: '用例标题', order: 2, is_custom: false, rich_text_break: false, empty_check: false },
-  { id: 'preconditions', name: '前置条件', order: 3, is_custom: false, rich_text_break: false, empty_check: false },
-  { id: 'steps', name: '步骤', order: 4, is_custom: false, rich_text_break: false, empty_check: false },
-  { id: 'expectedresults', name: '预期', order: 5, is_custom: false, rich_text_break: false, empty_check: false },
-  { id: 'importance', name: '优先级', order: 6, is_custom: false, rich_text_break: false, empty_check: false },
+  { id: 'requirements', name: '相关需求', order: 2, is_custom: false, rich_text_break: false, empty_check: false },
+  { id: 'name', name: '用例标题', order: 3, is_custom: false, rich_text_break: false, empty_check: false },
+  { id: 'preconditions', name: '前置条件', order: 4, is_custom: false, rich_text_break: false, empty_check: false },
+  { id: 'steps', name: '步骤', order: 5, is_custom: false, rich_text_break: false, empty_check: false },
+  { id: 'expectedresults', name: '预期', order: 6, is_custom: false, rich_text_break: false, empty_check: false },
+  { id: 'importance', name: '优先级', order: 7, is_custom: false, rich_text_break: false, empty_check: false },
+  { id: 'custom_1', name: '用例类型', order: 8, is_custom: true, default_value: '功能测试', values: {}, rich_text_break: false, empty_check: false },
+  { id: 'custom_2', name: '适用阶段', order: 9, is_custom: true, default_value: '功能测试阶段', values: {}, rich_text_break: false, empty_check: false },
 ];
 
 const HEADER_COLOR_PRESETS = ['#FAF8F2', '#FEF2F2', '#F3F4F6', '#DBEAFE', '#DCFCE7', '#FEF9C3', '#FDE68A', '#FCE7F3', '#EDE9FE', '#F0E4F5'];
@@ -418,6 +421,7 @@ const ColumnManager = {
 
     switch (colId) {
       case 'suite': return testcase.suite || '';
+      case 'requirements': return testcase.requirements || '';
       case 'name': return testcase.name || '';
       case 'preconditions': return testcase.preconditions || '';
       case 'steps':
@@ -812,7 +816,7 @@ const ColumnManager = {
 
     const columns = JSON.parse(JSON.stringify(tpl.columns || []));
     const sortedColumns = [...columns].sort((a, b) => (a.order || 0) - (b.order || 0));
-    const defaultColIds = ['suite', 'name', 'preconditions', 'steps', 'expectedresults', 'importance'];
+    const defaultColIds = ['suite', 'requirements', 'name', 'preconditions', 'steps', 'expectedresults', 'importance'];
     let headerColor = tpl.header_color || '#FAF8F2';
 
     const overlay = document.createElement('div');

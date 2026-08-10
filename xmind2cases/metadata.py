@@ -84,6 +84,7 @@ class TestCase:
             3=review in progress, 4=rework, 5=obsolete, 6=future, 7=final).
         result: Test result (0=non-execution, 1=pass, 2=failed,
             3=blocked, 4=skipped).
+        requirements: Related requirement tag, e.g. ``(#15889)``.
         steps: List of test steps.
     """
 
@@ -99,6 +100,7 @@ class TestCase:
         status: int = 7,
         result: int = 0,
         steps: Optional[List["TestStep"]] = None,
+        requirements: str = "",
     ) -> None:
         """Initialize a TestCase instance.
 
@@ -125,6 +127,7 @@ class TestCase:
         self.estimated_exec_duration = estimated_exec_duration
         self.status = status
         self.result = result
+        self.requirements = requirements
         self.steps = steps
 
     def to_dict(self) -> Dict[str, Any]:
@@ -143,6 +146,7 @@ class TestCase:
             "estimated_exec_duration": self.estimated_exec_duration,
             "status": self.status,
             "result": self.result,
+            "requirements": self.requirements,
             "steps": [],
         }
 
