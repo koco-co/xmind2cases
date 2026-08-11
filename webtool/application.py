@@ -759,7 +759,7 @@ def download_xmind_from_csv(filename: str) -> Any:
     Query params:
         sep: Repeatable. Each value is a delimiter used to split every
             ``用例标题`` into nested topics (any one acts as a cut point).
-            Defaults to a single space when absent.
+            Defaults to no splitting when absent.
         flat: ``1`` keeps titles unsplit (one topic per case).
 
     Args:
@@ -776,7 +776,7 @@ def download_xmind_from_csv(filename: str) -> Any:
         delimiters: list = []
     else:
         seps = request.args.getlist("sep")
-        delimiters = seps if seps else [" "]
+        delimiters = seps if seps else []
 
     xmind_path = zentao_csv_to_xmind_file(full_path, delimiters=delimiters)
     output_filename = os.path.basename(xmind_path)
